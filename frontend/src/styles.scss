@@ -534,3 +534,7 @@ select:focus-visible,
     grid-template-columns: 1fr;
   }
 }
+
+.badge-rdv-DISPENSED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
+.badge-rdv-DELIVERED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
+.badge-rdv-PHARMACY_PENDING { background:#FDEBD0; color:#7E3B00; padding:4px 12px; border-radius:20px; font-weight:600; }

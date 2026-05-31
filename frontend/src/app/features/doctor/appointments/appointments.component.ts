@@ -41,7 +41,12 @@ interface Appointment {
                                 style="margin:0 auto;"></mat-progress-spinner>
         </div>
 
-        <mat-tab-group *ngIf="!loading" animationDuration="200ms">
+        <div *ngIf="!loading && appointments.length === 0" class="empty-state">
+          <mat-icon>event_busy</mat-icon>
+          <h3>Aucun rendez-vous pour le moment</h3>
+        </div>
+
+        <mat-tab-group *ngIf="!loading && appointments.length > 0" animationDuration="200ms">
           <mat-tab *ngFor="let tab of tabs; trackBy: trackByItem"
                    [label]="tab.label + ' (' + getByStatus(tab.status).length + ')'">
             <div style="padding-top:20px;display:flex;flex-direction:column;gap:12px;">
@@ -179,6 +184,10 @@ export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void { this.load(); }
+
+  get appointments(): Appointment[] {
+    return this.all;
+  }
 
   load(): void {
     this.loading = true;

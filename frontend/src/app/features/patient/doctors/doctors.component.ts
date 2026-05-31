@@ -48,7 +48,11 @@ interface Doctor {
 
         <!-- Barre de recherche -->
         <mat-card style="padding:20px;margin-bottom:24px;">
-          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:center;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:16px;align-items:center;">
+            <mat-form-field appearance="outline" style="margin:0;">
+              <mat-label>Recherche</mat-label>
+              <input matInput [(ngModel)]="searchText" placeholder="Nom, prénom ou spécialité">
+            </mat-form-field>
             <mat-form-field appearance="outline" style="margin:0;">
               <mat-label>Spécialité</mat-label>
               <mat-select [(ngModel)]="filterSpec">
@@ -261,6 +265,7 @@ export class DoctorSearchComponent implements OnInit, OnDestroy {
   loading = true;
   allDoctors: Doctor[] = [];
   filteredDoctors: Doctor[] = [];
+  searchText = '';
 
   filterSpec  = '';
   filterVille = '';
@@ -299,8 +304,22 @@ export class DoctorSearchComponent implements OnInit, OnDestroy {
     if (this.filterVille) params['ville']       = this.filterVille;
 
     this.api.get<Doctor[]>('/api/doctors/search', params).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (data) => { this.allDoctors = data; this.filteredDoctors = data; this.loading = false; },
+      next: (data) => {
+        this.allDoctors = data;
+        this.applyLocalFilter();
+        this.loading = false;
+      },
       error: () => { this.loading = false; }
+    });
+  }
+
+  applyLocalFilter(): void {
+    const q = this.searchText.trim().toLowerCase();
+    this.filteredDoctors = this.allDoctors.filter(doc => {
+      if (!q) return true;
+      return (doc.nom ?? '').toLowerCase().includes(q) ||
+        (doc.prenom ?? '').toLowerCase().includes(q) ||
+        (doc.specialite ?? '').toLowerCase().includes(q);
     });
   }
 

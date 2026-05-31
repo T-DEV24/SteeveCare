@@ -1,5 +1,5 @@
 // src/app/features/admin/users/users.component.ts
-import { Component, OnDestroy, OnInit, inject, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -32,7 +33,7 @@ interface UserRow {
   imports: [InitialsPipe, SidebarComponent,
     CommonModule, RouterModule, FormsModule,
     MatIconModule, MatButtonModule, MatCardModule,
-    MatTableModule, MatPaginatorModule, MatFormFieldModule,
+    MatTableModule, MatPaginatorModule, MatSortModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatTooltipModule,
     MatProgressSpinnerModule, MatSnackBarModule
   ],
@@ -88,12 +89,12 @@ interface UserRow {
                                   style="margin:0 auto;"></mat-progress-spinner>
           </div>
 
-          <table *ngIf="!loading" mat-table [dataSource]="dataSource"
+          <table *ngIf="!loading" mat-table matSort [dataSource]="dataSource"
                  style="width:100%;">
 
             <!-- Col 1 : Utilisateur -->
             <ng-container matColumnDef="utilisateur">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;font-size:12px;
                          text-transform:uppercase;letter-spacing:0.5px;">
                 Utilisateur
@@ -116,7 +117,7 @@ interface UserRow {
 
             <!-- Col 2 : Rôle -->
             <ng-container matColumnDef="role">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;
                          font-size:12px;text-transform:uppercase;">Rôle</th>
               <td mat-cell *matCellDef="let u" style="padding:16px;">
@@ -126,7 +127,7 @@ interface UserRow {
 
             <!-- Col 3 : Statut -->
             <ng-container matColumnDef="statut">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;
                          font-size:12px;text-transform:uppercase;">Statut</th>
               <td mat-cell *matCellDef="let u" style="padding:16px;">
@@ -136,7 +137,7 @@ interface UserRow {
 
             <!-- Col 4 : Date -->
             <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;
                          font-size:12px;text-transform:uppercase;">Inscription</th>
               <td mat-cell *matCellDef="let u" style="padding:16px;color:#7F8C8D;font-size:13px;">
@@ -230,13 +231,14 @@ interface UserRow {
     </div>
   `
 })
-export class UserManagementComponent implements OnInit, OnDestroy {
+export class UserManagementComponent implements OnInit, AfterViewInit, OnDestroy {
   private destroy$ = new Subject<void>();
   auth    = inject(AuthService);
   private api      = inject(ApiService);
   private notification = inject(NotificationService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
   loading       = true;
   actionLoading: number | null = null;
@@ -253,7 +255,23 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   dataSource = new MatTableDataSource<UserRow>([]);
   private allUsers: UserRow[] = [];
 
+  constructor() {
+    this.dataSource.sortingDataAccessor = (user, column) => {
+      switch (column) {
+        case 'utilisateur': return `${user.prenom} ${user.nom} ${user.email}`.toLowerCase();
+        case 'statut': return user.status;
+        case 'date': return new Date(user.createdAt).getTime();
+        default: return (user as any)[column] ?? '';
+      }
+    };
+  }
+
   ngOnInit(): void { this.loadUsers(); }
+
+  ngAfterViewInit(): void {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
 
   loadUsers(): void {
     this.loading = true;
@@ -261,7 +279,10 @@ export class UserManagementComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.allUsers = data;
         this.dataSource.data = data;
-        setTimeout(() => { this.dataSource.paginator = this.paginator; });
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+        });
         this.loading = false;
       },
       error: () => { this.loading = false; }
@@ -279,7 +300,10 @@ export class UserManagementComponent implements OnInit, OnDestroy {
       const matchStatus = !this.filterStatus || u.status === this.filterStatus;
       return matchText && matchRole && matchStatus;
     });
-    setTimeout(() => { this.dataSource.paginator = this.paginator; });
+    setTimeout(() => {
+      this.dataSource.paginator = this.paginator;
+      this.dataSource.sort = this.sort;
+    });
   }
 
   freeze(u: UserRow): void {
