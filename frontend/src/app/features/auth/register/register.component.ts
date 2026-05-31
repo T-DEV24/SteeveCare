@@ -50,14 +50,14 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
         </div>
 
         <!-- STEPPER -->
-        <mat-stepper linear #stepper>
+        <mat-stepper linear #stepper [selectedIndex]="selectedIndex" animationDuration="300ms" labelPosition="bottom">
 
           <!-- ═══ ÉTAPE 1 : Identifiants ═══ -->
           <mat-step [stepControl]="step1">
             <ng-template matStepLabel>Identifiants</ng-template>
             <form [formGroup]="step1" style="padding-top:20px;">
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Adresse email</mat-label>
                 <input matInput formControlName="email" type="email"
                        placeholder="vous@exemple.cm">
@@ -70,7 +70,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                 </mat-error>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Mot de passe</mat-label>
                 <input matInput formControlName="password"
                        [type]="showPwd ? 'text' : 'password'">
@@ -102,7 +102,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                 </span>
               </div>
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Confirmer le mot de passe</mat-label>
                 <input matInput formControlName="confirmPassword"
                        [type]="showConfirm ? 'text' : 'password'">
@@ -132,19 +132,19 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
             <ng-template matStepLabel>Informations</ng-template>
             <form [formGroup]="step2" style="padding-top:20px;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Nom</mat-label>
                   <input matInput formControlName="nom">
                   <mat-error>Obligatoire</mat-error>
                 </mat-form-field>
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Prénom</mat-label>
                   <input matInput formControlName="prenom">
                   <mat-error>Obligatoire</mat-error>
                 </mat-form-field>
               </div>
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Téléphone</mat-label>
                 <input matInput formControlName="telephone"
                        placeholder="6XXXXXXXX ou 2XXXXXXXXX">
@@ -158,14 +158,14 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
               </mat-form-field>
 
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Ville</mat-label>
                   <mat-select formControlName="ville">
                     <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
                   </mat-select>
                   <mat-error>Obligatoire</mat-error>
                 </mat-form-field>
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Sexe</mat-label>
                   <mat-select formControlName="sexe">
                     <mat-option value="Masculin">Masculin</mat-option>
@@ -251,6 +251,7 @@ export class RegisterComponent {
   loading      = false;
   showPwd      = false;
   showConfirm  = false;
+  selectedIndex = 0;
 
   villes = ['Yaoundé','Douala','Bafoussam','Garoua','Bamenda',
              'Maroua','Ngaoundéré','Bertoua','Ebolowa','Kribi'];

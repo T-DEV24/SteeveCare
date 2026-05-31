@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Appointment {
   id: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
@@ -19,35 +20,11 @@ interface Appointment {
 @Component({
   selector: 'app-my-appointments',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
             MatCardModule, MatTabsModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/patient/dashboard">
-            <mat-icon>home</mat-icon> Accueil
-          </a>
-          <a class="nav-item" routerLink="/patient/doctors">
-            <mat-icon>search</mat-icon> Trouver un médecin
-          </a>
-          <a class="nav-item active" routerLink="/patient/appointments">
-            <mat-icon>event</mat-icon> Mes rendez-vous
-          </a>
-          <a class="nav-item" routerLink="/patient/medical-record">
-            <mat-icon>folder_shared</mat-icon> Dossier médical
-          </a>
-          <a class="nav-item" routerLink="/patient/messages">
-            <mat-icon>chat</mat-icon> Messagerie
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'patient'" [activeRoute]="'/patient/appointments'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -89,7 +66,6 @@ interface Appointment {
                         {{rdv.doctorSpecialite}}
                       </div>
                     </div>
-                    <!-- CORRECTION : [class] binding au lieu de class="badge-rdv-{{...}}" -->
                     <span [class]="'badge-rdv-' + rdv.statut">{{rdv.statut}}</span>
                   </div>
 
@@ -179,7 +155,7 @@ export class MyAppointmentsComponent implements OnInit {
     this.actionLoading = rdv.id;
     this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CANCELLED' }).subscribe({
       next: () => {
-        rdv.statut = 'CANCELLED';
+        this.appointments = this.appointments.filter(a => a.id !== rdv.id);
         this.snackBar.open('Rendez-vous annulé', '✕', { duration: 3000 });
         this.actionLoading = null;
       },

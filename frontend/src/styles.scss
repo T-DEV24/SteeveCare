@@ -1,4 +1,4 @@
-﻿/* src/styles.scss â€” SteevaCare Global Styles */
+/* src/styles.scss â€” SteevaCare Global Styles */
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 /* ANGULAR MATERIAL THEME (MDC â€” Angular 17)       */
@@ -7,6 +7,7 @@
 
 $primary: mat.define-palette(mat.$teal-palette);
 $accent:  mat.define-palette(mat.$green-palette, A200, A100, A400);
+// Angular Material 17.3-compatible legacy theme API.
 $theme:   mat.define-light-theme((
   color: (primary: $primary, accent: $accent),
   typography: mat.define-typography-config(),
@@ -241,7 +242,7 @@ mat-card {
 .overlay-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,.5);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -254,7 +255,7 @@ mat-card {
   background: white;
   border-radius: 16px;
   padding: 32px;
-  max-width: 520px;
+  max-width: 480px;
   width: 92%;
   max-height: 90vh;
   overflow-y: auto;

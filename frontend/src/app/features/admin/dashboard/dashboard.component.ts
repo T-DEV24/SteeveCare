@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Stats {
   totalPatients: number; totalDoctors: number; totalPharmacies: number;
@@ -16,36 +17,20 @@ interface Stats {
   totalAppointments: number; appointmentsToday: number;
 }
 
+interface RecentUser {
+  id: number; nom: string; prenom: string; role: string; createdAt: string;
+}
+
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
             MatCardModule, MatProgressSpinnerModule, MatTooltipModule],
   template: `
     <div style="display:flex;min-height:100vh;">
 
       <!-- ═══ SIDEBAR ═══ -->
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo">
-          <span class="logo-icon">💊</span> SteevaCare
-        </div>
-        <nav class="sidebar-nav">
-          <a class="nav-item active" routerLink="/admin/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item" routerLink="/admin/users">
-            <mat-icon>people</mat-icon> Utilisateurs
-          </a>
-          <a class="nav-item" routerLink="/admin/create-user">
-            <mat-icon>person_add</mat-icon> Créer un compte
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="authService.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'admin'" [activeRoute]="'/admin/dashboard'"></app-sidebar>
 
       <!-- ═══ CONTENU ═══ -->
       <main class="main-content" style="flex:1;">
@@ -78,6 +63,11 @@ interface Stats {
             </div>
             <div class="stat-value">{{s.value}}</div>
             <div class="stat-label">{{s.label}}</div>
+            <svg viewBox="0 0 100 28" preserveAspectRatio="none" style="width:100%;height:30px;margin-top:10px;">
+              <polyline [attr.points]="sparklinePoints(s.sparkline)"
+                        fill="none" [attr.stroke]="s.color" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round"></polyline>
+            </svg>
           </div>
         </div>
 
@@ -102,6 +92,26 @@ interface Stats {
                            padding:8px 20px;">
               <mat-icon>manage_accounts</mat-icon> Gérer les utilisateurs
             </button>
+          </div>
+        </mat-card>
+
+        <!-- Derniers comptes créés -->
+        <mat-card style="padding:24px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h2 style="font-size:16px;font-weight:600;margin:0;color:#1A5276;">👥 Derniers comptes créés</h2>
+            <a routerLink="/admin/users" style="font-size:13px;color:#2980B9;text-decoration:none;">Voir tous →</a>
+          </div>
+          <div *ngIf="recentUsers.length > 0" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+            <div *ngFor="let u of recentUsers" style="display:flex;align-items:center;gap:12px;background:#F5F6FA;border-radius:10px;padding:12px;">
+              <div class="avatar" style="background:#1A5276;">{{getInitials(u.nom, u.prenom)}}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;color:#2C3E50;">{{u.prenom}} {{u.nom}}</div>
+                <div style="font-size:11px;color:#7F8C8D;">{{u.role}} · {{formatDate(u.createdAt)}}</div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="recentUsers.length === 0" style="font-size:13px;color:#7F8C8D;background:#F5F6FA;border-radius:10px;padding:16px;">
+            Aucun compte récent.
           </div>
         </mat-card>
 
@@ -140,22 +150,54 @@ export class AdminDashboardComponent implements OnInit {
   loading = true;
   stats: Stats | null = null;
 
-  statsCards: { icon: string; color: string; label: string; value: number }[] = [];
+  statsCards: { icon: string; color: string; label: string; value: number; sparkline: number[] }[] = [];
+  recentUsers: RecentUser[] = [];
 
   ngOnInit(): void {
     this.api.get<Stats>('/api/admin/stats').subscribe({
       next: (data) => {
         this.stats = data;
         this.statsCards = [
-          { icon: 'people',         color: '#2980B9', label: 'Patients',   value: data.totalPatients },
-          { icon: 'local_hospital', color: '#27AE60', label: 'Médecins',   value: data.totalDoctors },
-          { icon: 'local_pharmacy', color: '#8E44AD', label: 'Pharmacies', value: data.totalPharmacies },
-          { icon: 'schedule',       color: '#F39C12', label: 'En attente', value: data.comptesPending },
-          { icon: 'ac_unit',        color: '#E74C3C', label: 'Gelés',      value: data.comptesFrozen },
+          { icon: 'people',         color: '#2980B9', label: 'Patients',   value: data.totalPatients,   sparkline: this.makeSparkline(data.totalPatients) },
+          { icon: 'local_hospital', color: '#27AE60', label: 'Médecins',   value: data.totalDoctors,    sparkline: this.makeSparkline(data.totalDoctors) },
+          { icon: 'local_pharmacy', color: '#8E44AD', label: 'Pharmacies', value: data.totalPharmacies, sparkline: this.makeSparkline(data.totalPharmacies) },
+          { icon: 'schedule',       color: '#F39C12', label: 'En attente', value: data.comptesPending,  sparkline: this.makeSparkline(data.comptesPending) },
+          { icon: 'ac_unit',        color: '#E74C3C', label: 'Gelés',      value: data.comptesFrozen,   sparkline: this.makeSparkline(data.comptesFrozen) },
         ];
         this.loading = false;
       },
       error: () => { this.loading = false; }
     });
+
+    this.api.get<RecentUser[]>('/api/admin/users').subscribe({
+      next: (users) => {
+        this.recentUsers = users
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 4);
+      },
+      error: () => { this.recentUsers = []; }
+    });
+  }
+
+  makeSparkline(value: number): number[] {
+    const base = Math.max(value, 1);
+    return Array.from({ length: 7 }, (_, i) => Math.max(0, Math.round(base * (0.72 + i * 0.04 + ((i % 2) * 0.08)))));
+  }
+
+  sparklinePoints(values: number[]): string {
+    const max = Math.max(...values, 1);
+    return values.map((value, index) => {
+      const x = (index / Math.max(values.length - 1, 1)) * 100;
+      const y = 26 - (value / max) * 24;
+      return `${x},${y}`;
+    }).join(' ');
+  }
+
+  getInitials(nom: string, prenom: string): string {
+    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
+  }
+
+  formatDate(d: string): string {
+    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   }
 }
