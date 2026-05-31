@@ -14,6 +14,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Doctor {
   id: number; userId: number; nom: string; prenom: string; specialite: string;
@@ -24,7 +25,7 @@ interface Doctor {
 @Component({
   selector: 'app-doctor-search',
   standalone: true,
-  imports: [
+  imports: [SidebarComponent,
     CommonModule, RouterModule, FormsModule,
     MatIconModule, MatButtonModule, MatCardModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
@@ -34,21 +35,7 @@ interface Doctor {
     <div style="display:flex;min-height:100vh;">
 
       <!-- SIDEBAR -->
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/patient/dashboard"><mat-icon>home</mat-icon> Accueil</a>
-          <a class="nav-item active" routerLink="/patient/doctors"><mat-icon>search</mat-icon> Trouver un médecin</a>
-          <a class="nav-item" routerLink="/patient/appointments"><mat-icon>event</mat-icon> Mes rendez-vous</a>
-          <a class="nav-item" routerLink="/patient/medical-record"><mat-icon>folder_shared</mat-icon> Dossier médical</a>
-          <a class="nav-item" routerLink="/patient/messages"><mat-icon>chat</mat-icon> Messagerie</a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'patient'" [activeRoute]="'/patient/doctors'"></app-sidebar>
 
       <!-- CONTENU -->
       <main class="main-content" style="flex:1;">
@@ -169,10 +156,12 @@ interface Doctor {
              style="display:flex;justify-content:center;align-items:center;
                     gap:8px;margin-top:28px;">
           <button mat-icon-button [disabled]="currentPage === 0"
+                  aria-label="Page précédente"
                   (click)="changePage(currentPage-1)">
             <mat-icon>chevron_left</mat-icon>
           </button>
           <button *ngFor="let p of pageNumbers" mat-icon-button
+                  [attr.aria-label]="'Aller à la page ' + (p + 1)"
                   (click)="changePage(p)"
                   [style.background]="p === currentPage ? '#1A5276' : 'transparent'"
                   [style.color]="p === currentPage ? 'white' : 'inherit'"
@@ -180,6 +169,7 @@ interface Doctor {
             {{p + 1}}
           </button>
           <button mat-icon-button [disabled]="currentPage === totalPages - 1"
+                  aria-label="Page suivante"
                   (click)="changePage(currentPage+1)">
             <mat-icon>chevron_right</mat-icon>
           </button>

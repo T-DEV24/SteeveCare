@@ -12,7 +12,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule, RouterModule, MatButtonModule, MatIconModule, MatCardModule],
   template: `
     <!-- HEADER -->
-    <header style="background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    <header class="home-header" style="background:white;box-shadow:0 2px 8px rgba(0,0,0,0.08);
                    position:sticky;top:0;z-index:50;padding:0 40px;">
       <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;
                   justify-content:space-between;height:64px;">
@@ -22,7 +22,7 @@ import { CommonModule } from '@angular/common';
             SteevaCare
           </span>
         </div>
-        <nav style="display:flex;gap:12px;align-items:center;">
+        <nav class="home-header-actions" style="display:flex;gap:12px;align-items:center;">
           <button mat-stroked-button color="primary" routerLink="/auth/login"
                   style="border-radius:8px;">
             Se connecter
@@ -36,18 +36,18 @@ import { CommonModule } from '@angular/common';
     </header>
 
     <!-- HERO -->
-    <section style="background:linear-gradient(135deg,#1A5276 0%,#27AE60 100%);
+    <section class="home-hero" style="background:linear-gradient(135deg,#1A5276 0%,#27AE60 100%);
                     padding:80px 40px;text-align:center;color:white;">
       <div style="max-width:700px;margin:0 auto;">
-        <div style="font-size:56px;margin-bottom:16px;">🏥</div>
-        <h1 style="font-size:38px;font-weight:700;margin-bottom:16px;line-height:1.2;">
+        <div class="home-hero-icon" style="font-size:56px;margin-bottom:16px;">🏥</div>
+        <h1 class="home-hero-title" style="font-weight:700;margin-bottom:16px;line-height:1.2;">
           Votre santé, notre priorité<br>en Afrique centrale
         </h1>
-        <p style="font-size:17px;opacity:0.9;margin-bottom:32px;line-height:1.7;">
+        <p class="home-hero-text" style="opacity:0.9;margin-bottom:32px;line-height:1.7;">
           Consultez un médecin qualifié depuis chez vous, obtenez vos ordonnances
           en ligne et accédez à des soins de qualité partout au Cameroun.
         </p>
-        <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
+        <div class="home-cta-row" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
           <button mat-raised-button routerLink="/auth/register"
                   style="background:white;color:#1A5276;font-weight:600;
                          padding:12px 32px;font-size:16px;border-radius:10px;">
@@ -64,14 +64,14 @@ import { CommonModule } from '@angular/common';
     </section>
 
     <!-- SERVICES -->
-    <section style="padding:64px 40px;background:#F5F6FA;">
+    <section class="home-section" style="padding:64px 40px;background:#F5F6FA;">
       <div style="max-width:1100px;margin:0 auto;">
         <h2 style="text-align:center;font-size:28px;font-weight:700;
                    color:#1A5276;margin-bottom:8px;">Nos services</h2>
         <p style="text-align:center;color:#7F8C8D;margin-bottom:48px;font-size:15px;">
           Tout ce dont vous avez besoin pour prendre soin de votre santé
         </p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;">
+        <div class="home-services-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;">
           <mat-card *ngFor="let service of services"
                     style="padding:28px;text-align:center;cursor:default;
                            transition:transform 0.2s,box-shadow 0.2s;"
@@ -95,7 +95,7 @@ import { CommonModule } from '@angular/common';
     </section>
 
     <!-- POURQUOI STEEVACARE -->
-    <section style="padding:64px 40px;background:white;">
+    <section class="home-section" style="padding:64px 40px;background:white;">
       <div style="max-width:1100px;margin:0 auto;">
         <h2 style="text-align:center;font-size:28px;font-weight:700;
                    color:#1A5276;margin-bottom:8px;">Pourquoi SteevaCare ?</h2>
@@ -115,9 +115,9 @@ import { CommonModule } from '@angular/common';
     </section>
 
     <!-- CTA FINAL -->
-    <section style="background:linear-gradient(135deg,#1A5276,#27AE60);
+    <section class="home-final-cta" style="background:linear-gradient(135deg,#1A5276,#27AE60);
                     padding:64px 40px;text-align:center;color:white;">
-      <h2 style="font-size:30px;font-weight:700;margin-bottom:12px;">
+      <h2 class="home-final-title" style="font-size:30px;font-weight:700;margin-bottom:12px;">
         Prêt à prendre soin de votre santé ?
       </h2>
       <p style="font-size:16px;opacity:0.9;margin-bottom:32px;">
@@ -141,6 +141,20 @@ import { CommonModule } from '@angular/common';
   styles: [`
     :host { display: block; }
     mat-card { border-radius: 12px !important; }
+    .home-hero-title { font-size: clamp(2rem, 5vw, 3.5rem); }
+    .home-hero-text { font-size: clamp(1rem, 2vw, 1.15rem); }
+    .home-hero-icon { font-size: clamp(3rem, 8vw, 4rem) !important; }
+
+    @media (max-width: 768px) {
+      .home-header { padding: 0 16px !important; }
+      .home-header > div { height: auto !important; min-height: 64px; gap: 12px; align-items: flex-start !important; flex-direction: column; padding: 14px 0; }
+      .home-header-actions { width: 100%; flex-direction: column; align-items: stretch !important; }
+      .home-header-actions button { width: 100%; }
+      .home-hero, .home-section, .home-final-cta { padding: 48px 20px !important; }
+      .home-cta-row { flex-direction: column; align-items: stretch; }
+      .home-cta-row button { width: 100%; }
+      .home-services-grid { grid-template-columns: 1fr !important; }
+    }
   `]
 })
 export class HomeComponent {
