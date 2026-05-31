@@ -29,7 +29,7 @@ export interface NavLink {
     </button>
     <aside class="sidebar" [class.mobile-open]="mobileOpen" [style.background]="bgColor">
       <div class="sidebar-logo">
-        <span class="logo-icon">{{logoEmoji}}</span> SteevaCare
+        <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
       </div>
 
       <nav class="sidebar-nav">
@@ -69,6 +69,18 @@ export interface NavLink {
     .sidebar-badge-pulse {
       animation: sidebarBadgePulse 1.4s infinite;
     }
+
+    .sidebar-logo img {
+      display: block;
+      width: 156px;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+      padding: 10px 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+    }
   `]
 })
 export class SidebarComponent {
@@ -90,9 +102,6 @@ export class SidebarComponent {
     return colors[this.role];
   }
 
-  get logoEmoji(): string {
-    return this.role === 'doctor' ? '🩺' : '💊';
-  }
 
   get navLinks(): NavLink[] {
     const links: Record<SidebarRole, NavLink[]> = {

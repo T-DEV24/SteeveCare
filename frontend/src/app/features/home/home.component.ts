@@ -33,9 +33,8 @@ interface StatCounter {
     <!-- HEADER -->
     <header class="home-header">
       <div class="home-header__inner">
-        <button type="button" class="home-logo" (click)="scrollToTop()" aria-label="Retour à l'accueil">
-          <span class="home-logo__mark">💊</span>
-          <span class="home-logo__text">SteevaCare</span>
+        <button type="button" class="home-logo" (click)="scrollToTop()" aria-label="Retour à l'accueil SteevaCare">
+          <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
         </button>
 
         <nav class="home-header-actions" aria-label="Navigation principale">
@@ -212,8 +211,7 @@ interface StatCounter {
       <div class="home-footer__inner">
         <div class="home-footer__brand">
           <div class="home-footer__logo">
-            <span>💊</span>
-            <strong>SteevaCare</strong>
+            <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
           </div>
           <p>Votre santé connectée, partout au Cameroun.</p>
         </div>
@@ -274,30 +272,15 @@ interface StatCounter {
       background: transparent;
       display: inline-flex;
       align-items: center;
-      gap: 10px;
       padding: 0;
       cursor: pointer;
-      font: inherit;
     }
 
-    .home-logo__mark,
-    .home-footer__logo span {
-      width: 42px;
-      height: 42px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 14px;
-      background: linear-gradient(135deg,#1A5276,#27AE60);
-      box-shadow: 0 10px 24px rgba(39,174,96,0.25);
-      font-size: 24px;
-    }
-
-    .home-logo__text {
-      font-size: 21px;
-      font-weight: 800;
-      color: #1A5276;
-      letter-spacing: 0.4px;
+    .home-logo img {
+      width: 168px;
+      max-width: 44vw;
+      height: auto;
+      display: block;
     }
 
     .home-header-actions {
@@ -856,9 +839,17 @@ interface StatCounter {
     .home-footer__logo {
       display: flex;
       align-items: center;
-      gap: 12px;
-      color: white;
-      font-size: 22px;
+    }
+
+    .home-footer__logo img {
+      width: 210px;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      padding: 10px 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.96);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.18);
     }
 
     .home-footer__brand p {

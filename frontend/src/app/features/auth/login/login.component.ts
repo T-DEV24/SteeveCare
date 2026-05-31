@@ -31,8 +31,9 @@ import { Subject, takeUntil } from 'rxjs';
 
         <!-- Logo -->
         <div style="text-align:center;margin-bottom:32px;">
-          <div style="font-size:48px;margin-bottom:10px;">💊</div>
-          <h1 style="font-size:24px;font-weight:700;color:#1A5276;margin:0;">SteevaCare</h1>
+          <img src="assets/brand/steevacare-logo.svg"
+               alt="SteevaCare - Télémédecine pour l'Afrique"
+               style="display:block;width:180px;max-width:78%;height:auto;margin:0 auto 12px;">
           <p style="color:#7F8C8D;font-size:14px;margin-top:4px;">Accédez à votre espace santé</p>
         </div>
 
