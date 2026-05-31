@@ -61,23 +61,18 @@ import { trigger, state, style, animate, transition, keyframes } from '@angular/
       <!-- Logo animé -->
       <div [@logoAnim] style="text-align:center;position:relative;z-index:1;">
 
-        <!-- Icône principale -->
-        <div style="width:120px;height:120px;border-radius:28px;
-                    background:rgba(255,255,255,0.12);
-                    backdrop-filter:blur(10px);
-                    border:1px solid rgba(255,255,255,0.2);
+        <!-- Logo principal -->
+        <div style="border-radius:32px;background:rgba(255,255,255,0.94);
+                    backdrop-filter:blur(12px);
+                    border:1px solid rgba(255,255,255,0.55);
                     display:flex;align-items:center;justify-content:center;
-                    margin:0 auto 24px;
-                    box-shadow:0 8px 32px rgba(0,0,0,0.3);">
-          <span style="font-size:64px;line-height:1;">💊</span>
+                    margin:0 auto 24px;padding:18px 24px;
+                    width:min(320px,82vw);
+                    box-shadow:0 18px 44px rgba(0,0,0,0.32);">
+          <img src="assets/brand/steevacare-logo.svg"
+               alt="SteevaCare - Télémédecine pour l'Afrique"
+               style="display:block;width:100%;height:auto;">
         </div>
-
-        <!-- Nom -->
-        <h1 style="font-family:'Roboto',sans-serif;font-size:42px;font-weight:700;
-                   color:white;letter-spacing:2px;margin:0;
-                   text-shadow:0 2px 12px rgba(0,0,0,0.3);">
-          Steeva<span style="color:#27AE60;">Care</span>
-        </h1>
 
         <!-- Slogan -->
         <div [@textAnim] style="margin-top:12px;">
@@ -134,7 +129,12 @@ export class SplashScreenComponent implements OnInit, OnDestroy {
 
   splashState = 'visible';
   loadingText = 'Initialisation...';
-  private intervalId: any = null;
+  private readonly maxSplashDurationMs = 3000;
+  private readonly fadeOutDurationMs = 650;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private fallbackTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private emitTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private isCompleted = false;
 
   private loadingMessages = [
     'Initialisation...',
@@ -149,20 +149,31 @@ export class SplashScreenComponent implements OnInit, OnDestroy {
       i++;
       if (i < this.loadingMessages.length) {
         this.loadingText = this.loadingMessages[i];
-      } else {
+      } else if (this.intervalId !== null) {
         clearInterval(this.intervalId);
+        this.intervalId = null;
       }
     }, 700);
 
-    // Disparition après 3 secondes
-    setTimeout(() => {
-      this.splashState = 'hidden';
-      setTimeout(() => this.splashDone.emit(), 650);
-    }, 3000);
+    // Fallback de sécurité : le splash disparaît au plus tard après 3 secondes,
+    // même si une vérification API du token reste bloquée ou échoue côté parent.
+    this.fallbackTimeoutId = setTimeout(() => {
+      this.completeSplash();
+    }, this.maxSplashDurationMs);
   }
 
   ngOnDestroy(): void {
-    if (this.intervalId) clearInterval(this.intervalId);
+    if (this.intervalId !== null) clearInterval(this.intervalId);
+    if (this.fallbackTimeoutId !== null) clearTimeout(this.fallbackTimeoutId);
+    if (this.emitTimeoutId !== null) clearTimeout(this.emitTimeoutId);
+  }
+
+  private completeSplash(): void {
+    if (this.isCompleted) return;
+
+    this.isCompleted = true;
+    this.splashState = 'hidden';
+    this.emitTimeoutId = setTimeout(() => this.splashDone.emit(), this.fadeOutDurationMs);
   }
 
   trackByItem(_: number, item: any): unknown {

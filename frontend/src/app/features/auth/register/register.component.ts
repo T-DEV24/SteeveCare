@@ -42,7 +42,9 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
 
         <!-- Logo -->
         <div style="text-align:center;margin-bottom:28px;">
-          <div style="font-size:40px;margin-bottom:8px;">💊</div>
+          <img src="assets/brand/steevacare-logo.svg"
+               alt="SteevaCare - Télémédecine pour l'Afrique"
+               style="display:block;width:190px;max-width:78%;height:auto;margin:0 auto 12px;">
           <h1 style="font-size:22px;font-weight:700;color:#1A5276;margin:0;">
             Créer mon compte
           </h1>
