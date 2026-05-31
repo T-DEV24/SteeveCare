@@ -25,7 +25,7 @@ interface Appointment {
             MatCardModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/dashboard'"></app-sidebar>
+      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/dashboard'" [badgeCounts]="doctorSidebarBadges"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -72,6 +72,32 @@ interface Appointment {
               <div class="stat-label">Terminés</div>
             </div>
           </div>
+
+          <!-- Tendance hebdomadaire -->
+          <mat-card style="padding:20px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+              <div>
+                <h2 style="font-size:16px;font-weight:600;color:#2C3E50;margin:0 0 6px;">Activité hebdomadaire</h2>
+                <p style="font-size:12px;color:#7F8C8D;margin:0;">Comparaison des rendez-vous créés cette semaine</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:18px;">
+                <div style="text-align:right;">
+                  <div style="font-size:12px;color:#7F8C8D;">Cette semaine</div>
+                  <div style="font-size:26px;font-weight:700;color:#0B5345;">{{currentWeekCount}}</div>
+                </div>
+                <mat-icon [style.color]="weekTrend >= 0 ? '#27AE60' : '#E74C3C'" style="font-size:30px;width:30px;height:30px;">
+                  {{weekTrend >= 0 ? 'trending_up' : 'trending_down'}}
+                </mat-icon>
+                <div>
+                  <div style="font-size:12px;color:#7F8C8D;">Semaine précédente</div>
+                  <div style="font-size:18px;font-weight:700;color:#7F8C8D;">{{previousWeekCount}}</div>
+                  <div [style.color]="weekTrend >= 0 ? '#27AE60' : '#E74C3C'" style="font-size:12px;font-weight:600;">
+                    {{weekTrend >= 0 ? '+' : ''}}{{weekTrend}} RDV
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card>
 
           <!-- En attente -->
           <mat-card style="padding:24px;margin-bottom:20px;">
@@ -215,9 +241,32 @@ export class DoctorDashboardComponent implements OnInit {
   rejectMotif = '';
   selectedRdv: Appointment | null = null;
 
-  get pending()   { return this.all.filter(a => a.statut === 'PENDING'); }
+  get pending() {
+    return this.all
+      .filter(a => a.statut === 'PENDING')
+      .sort((a, b) => new Date(a.dateHeure).getTime() - new Date(b.dateHeure).getTime());
+  }
   get confirmed() { return this.all.filter(a => a.statut === 'CONFIRMED'); }
   get completed() { return this.all.filter(a => a.statut === 'COMPLETED'); }
+
+  get doctorSidebarBadges(): Record<string, number> {
+    return { '/doctor/appointments': this.pending.length };
+  }
+
+  get currentWeekCount(): number {
+    return this.countAppointmentsBetween(this.startOfWeek(new Date()), new Date());
+  }
+
+  get previousWeekCount(): number {
+    const currentStart = this.startOfWeek(new Date());
+    const previousStart = new Date(currentStart);
+    previousStart.setDate(currentStart.getDate() - 7);
+    return this.countAppointmentsBetween(previousStart, currentStart);
+  }
+
+  get weekTrend(): number {
+    return this.currentWeekCount - this.previousWeekCount;
+  }
 
   ngOnInit(): void { this.load(); }
 
@@ -269,6 +318,21 @@ export class DoctorDashboardComponent implements OnInit {
         this.actionLoading = null;
       }
     });
+  }
+
+  private startOfWeek(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay() || 7;
+    d.setDate(d.getDate() - day + 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  private countAppointmentsBetween(start: Date, end: Date): number {
+    return this.all.filter(a => {
+      const date = new Date(a.dateHeure);
+      return date >= start && date < end;
+    }).length;
   }
 
   getInitials(nom: string, prenom: string): string {

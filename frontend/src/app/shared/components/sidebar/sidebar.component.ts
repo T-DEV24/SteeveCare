@@ -28,9 +28,18 @@ export interface NavLink {
         <a *ngFor="let link of navLinks"
            class="nav-item"
            [class.active]="link.route === activeRoute"
-           [routerLink]="link.route">
+           [routerLink]="link.route"
+           style="position:relative;">
           <mat-icon>{{link.icon}}</mat-icon>
           {{link.label}}
+          <span *ngIf="badgeCounts[link.route] > 0"
+                class="sidebar-badge-pulse"
+                style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
+                       background:#E74C3C;color:white;border-radius:999px;min-width:20px;
+                       height:20px;padding:0 6px;font-size:11px;font-weight:700;
+                       display:flex;align-items:center;justify-content:center;">
+            {{badgeCounts[link.route]}}
+          </span>
         </a>
       </nav>
 
@@ -40,11 +49,23 @@ export interface NavLink {
         </button>
       </div>
     </aside>
-  `
+  `,
+  styles: [`
+    @keyframes sidebarBadgePulse {
+      0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.65); }
+      70% { box-shadow: 0 0 0 8px rgba(231, 76, 60, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+    }
+
+    .sidebar-badge-pulse {
+      animation: sidebarBadgePulse 1.4s infinite;
+    }
+  `]
 })
 export class SidebarComponent {
   @Input() role: SidebarRole = 'patient';
   @Input() activeRoute = '';
+  @Input() badgeCounts: Record<string, number> = {};
 
   protected auth = inject(AuthService);
 
