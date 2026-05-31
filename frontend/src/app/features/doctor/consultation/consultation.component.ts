@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Observable, Subject, map, startWith, switchMap, takeUntil } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
@@ -442,6 +442,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
+  private readonly snackBar = inject(MatSnackBar);
 
   loading = true;
   saving = false;
@@ -525,6 +526,10 @@ export class ConsultationComponent implements OnInit, OnDestroy {
     return this.medicaments.getRawValue().filter((m: any) => !!m.nom || !!m.posologie || !!m.instructions);
   }
 
+  get selectedPharmacyId(): number | null {
+    return this.consultationForm.get('selectedPharmacyId')?.value ?? null;
+  }
+
   get bloodType(): string {
     return this.medicalRecord?.groupeSanguin ?? this.medicalRecord?.bloodType ?? 'Non renseigné';
   }
@@ -589,13 +594,18 @@ export class ConsultationComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.selectedPharmacyId) {
+      this.snackBar.open('Sélectionnez une pharmacie', '✕', { duration: 4000 });
+      return;
+    }
+
     this.prescriptionSending = true;
-    this.api.post('/api/prescriptions', this.buildPrescriptionBody())
+    this.api.post<{ codeRetrait?: string }>('/api/prescriptions', this.buildPrescriptionBody())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        next: (res) => {
           this.prescriptionSending = false;
-          this.notification.success('Ordonnance envoyée à la pharmacie.', 4000);
+          this.snackBar.open('Ordonnance envoyée — Code: ' + (res.codeRetrait ?? '—'), '✕', { duration: 8000 });
         },
         error: (err) => {
           this.prescriptionSending = false;
@@ -755,7 +765,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   }
 
   private buildPrescriptionBody(): Record<string, unknown> {
-    const selectedPharmacyId = this.consultationForm.get('selectedPharmacyId')?.value;
+    const selectedPharmacyId = this.selectedPharmacyId;
     return {
       appointmentId: this.appointment?.id,
       patientId: this.appointment?.patientId,
