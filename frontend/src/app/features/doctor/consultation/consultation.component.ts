@@ -19,7 +19,7 @@ interface Appointment {
   doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
   dateHeure: string; type: string; statut: string; motif: string;
 }
-interface Pharmacy { id: number; nom: string; prenom: string; }
+interface Pharmacy { id: number; nom: string; prenom?: string; }
 
 @Component({
   selector: 'app-consultation',
@@ -231,12 +231,13 @@ export class ConsultationComponent implements OnInit {
       error: () => { this.loading = false; }
     });
 
-    // Charger les pharmacies
-    this.api.get<any[]>('/api/admin/users').subscribe({
-      next: (users) => {
-        this.pharmacies = users
-          .filter(u => u.role === 'PHARMACY' && u.status === 'ACTIVE')
-          .map(u => ({ id: u.id, nom: `${u.prenom} ${u.nom}` }));
+    // Charger uniquement les pharmacies actives via l'endpoint public dédié.
+    this.api.get<Pharmacy[]>('/api/pharmacies/active').subscribe({
+      next: (pharmacies) => {
+        this.pharmacies = pharmacies.map(p => ({
+          id: p.id,
+          nom: p.prenom ? `${p.prenom} ${p.nom}` : p.nom
+        }));
       }
     });
   }
