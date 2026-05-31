@@ -44,8 +44,15 @@ export class AuthService {
     }
   }
 
-  /** Connexion : stocke la réponse et redirige selon le rôle */
+  /** Connexion : stocke la réponse seulement si le JWT n'est pas expiré. */
   login(response: AuthResponse): void {
+    if (this.isTokenExpired(response.accessToken)) {
+      localStorage.removeItem(this.STORAGE_KEY);
+      this._currentUser.set(null);
+      this.router.navigate(['/auth/login']);
+      return;
+    }
+
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(response));
     this._currentUser.set(response);
     this.redirectByRole(response.role);
@@ -70,7 +77,7 @@ export class AuthService {
     const payload = this.decodeJwtPayload(token);
     if (!payload?.exp) return true;
 
-    return Date.now() >= payload.exp * 1000;
+    return payload.exp <= Date.now() / 1000;
   }
 
   private decodeJwtPayload(token: string): { exp?: number } | null {
