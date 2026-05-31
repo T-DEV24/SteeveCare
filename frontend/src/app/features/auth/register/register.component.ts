@@ -1,11 +1,12 @@
 // src/app/features/auth/register/register.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import {
   AbstractControl, FormBuilder, ReactiveFormsModule,
   ValidationErrors, ValidatorFn, Validators
 } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -13,14 +14,15 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService, AuthResponse } from '../../../core/services/auth.service';
 
 const passwordMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
   const pass    = group.get('password')?.value;
   const confirm = group.get('confirmPassword')?.value;
-  return pass && confirm && pass !== confirm ? { mismatch: true } : null;
+  return pass && confirm && pass !== confirm ? { passwordMismatch: true } : null;
 };
 
 @Component({
@@ -50,14 +52,14 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
         </div>
 
         <!-- STEPPER -->
-        <mat-stepper linear #stepper>
+        <mat-stepper linear #stepper [selectedIndex]="selectedIndex" animationDuration="300ms" labelPosition="bottom">
 
           <!-- ═══ ÉTAPE 1 : Identifiants ═══ -->
           <mat-step [stepControl]="step1">
             <ng-template matStepLabel>Identifiants</ng-template>
             <form [formGroup]="step1" style="padding-top:20px;">
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Adresse email</mat-label>
                 <input matInput formControlName="email" type="email"
                        placeholder="vous@exemple.cm">
@@ -70,11 +72,12 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                 </mat-error>
               </mat-form-field>
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Mot de passe</mat-label>
                 <input matInput formControlName="password"
                        [type]="showPwd ? 'text' : 'password'">
                 <button mat-icon-button matSuffix type="button"
+                        [attr.aria-label]="showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
                         (click)="showPwd=!showPwd">
                   <mat-icon style="color:#7F8C8D;">
                     {{showPwd?'visibility_off':'visibility'}}
@@ -92,7 +95,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
               <div *ngIf="step1.get('password')?.value"
                    style="margin-bottom:12px;">
                 <div style="display:flex;gap:4px;margin-bottom:4px;">
-                  <div *ngFor="let b of [0,1,2]"
+                  <div *ngFor="let b of [0,1,2]; trackBy: trackByItem"
                        [style.background]="passwordStrength > b ? strengthColor : '#EEF0F4'"
                        style="flex:1;height:4px;border-radius:2px;
                               transition:background 0.3s;"></div>
@@ -102,17 +105,18 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                 </span>
               </div>
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Confirmer le mot de passe</mat-label>
                 <input matInput formControlName="confirmPassword"
                        [type]="showConfirm ? 'text' : 'password'">
                 <button mat-icon-button matSuffix type="button"
+                        [attr.aria-label]="showConfirm ? 'Masquer la confirmation' : 'Afficher la confirmation'"
                         (click)="showConfirm=!showConfirm">
                   <mat-icon style="color:#7F8C8D;">
                     {{showConfirm?'visibility_off':'visibility'}}
                   </mat-icon>
                 </button>
-                <mat-error *ngIf="step1.hasError('mismatch')">
+                <mat-error *ngIf="form.hasError('passwordMismatch')">
                   Les mots de passe ne correspondent pas
                 </mat-error>
               </mat-form-field>
@@ -132,19 +136,19 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
             <ng-template matStepLabel>Informations</ng-template>
             <form [formGroup]="step2" style="padding-top:20px;">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Nom</mat-label>
                   <input matInput formControlName="nom">
                   <mat-error>Obligatoire</mat-error>
                 </mat-form-field>
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Prénom</mat-label>
                   <input matInput formControlName="prenom">
                   <mat-error>Obligatoire</mat-error>
                 </mat-form-field>
               </div>
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
                 <mat-label>Téléphone</mat-label>
                 <input matInput formControlName="telephone"
                        placeholder="6XXXXXXXX ou 2XXXXXXXXX">
@@ -153,19 +157,19 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                   Obligatoire
                 </mat-error>
                 <mat-error *ngIf="step2.get('telephone')?.hasError('pattern')">
-                  Numéro camerounais invalide (ex: 677123456)
+                  Numéro camerounais 9 chiffres requis
                 </mat-error>
               </mat-form-field>
 
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Ville</mat-label>
                   <mat-select formControlName="ville">
-                    <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
+                    <mat-option *ngFor="let v of villes; trackBy: trackByItem" [value]="v">{{v}}</mat-option>
                   </mat-select>
                   <mat-error>Obligatoire</mat-error>
                 </mat-form-field>
-                <mat-form-field appearance="outline">
+                <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Sexe</mat-label>
                   <mat-select formControlName="sexe">
                     <mat-option value="Masculin">Masculin</mat-option>
@@ -198,7 +202,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
               </h3>
               <div style="background:#F5F6FA;border-radius:10px;padding:20px;
                           display:grid;gap:10px;">
-                <div *ngFor="let row of recap" style="display:flex;gap:8px;">
+                <div *ngFor="let row of recap; trackBy: trackByItem" style="display:flex;gap:8px;">
                   <span style="color:#7F8C8D;font-size:13px;min-width:100px;">
                     {{row.label}} :
                   </span>
@@ -242,15 +246,17 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
     </div>
   `
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnDestroy {
+  private destroy$ = new Subject<void>();
   private fb          = inject(FormBuilder);
   private api         = inject(ApiService);
   private authService = inject(AuthService);
-  private snackBar    = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading      = false;
   showPwd      = false;
   showConfirm  = false;
+  selectedIndex = 0;
 
   villes = ['Yaoundé','Douala','Bafoussam','Garoua','Bamenda',
              'Maroua','Ngaoundéré','Bertoua','Ebolowa','Kribi'];
@@ -261,10 +267,14 @@ export class RegisterComponent {
     confirmPassword: ['', Validators.required]
   }, { validators: passwordMatchValidator });
 
+  get form() {
+    return this.step1;
+  }
+
   step2 = this.fb.group({
     nom:       ['', Validators.required],
     prenom:    ['', Validators.required],
-    telephone: ['', [Validators.required, Validators.pattern('^(6[5-9][0-9]{7}|2[0-9]{8}|[0-9]{9})$')]],
+    telephone: ['', [Validators.required, Validators.pattern('^[0-9]{9}$')]],
     ville:     ['', Validators.required],
     sexe:      ['', Validators.required]
   });
@@ -309,21 +319,28 @@ export class RegisterComponent {
       sexe:      this.step2.get('sexe')?.value
     };
 
-    this.api.post<AuthResponse>('/api/auth/register', body).subscribe({
+    this.api.post<AuthResponse>('/api/auth/register', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.loading = false;
-        this.snackBar.open('Compte créé avec succès ! Bienvenue 🎉', '✕', {
-          duration: 3000, panelClass: ['snack-success']
-        });
+        this.notification.success('Compte créé avec succès ! Bienvenue 🎉', 3000);
         this.authService.register(res);
       },
       error: (err) => {
         this.loading = false;
         const msg = err.error?.erreur ?? 'Erreur lors de la création du compte';
-        this.snackBar.open(msg, '✕', {
-          duration: 5000, panelClass: ['snack-error']
-        });
+        this.notification.error(msg, 5000);
       }
     });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
 }

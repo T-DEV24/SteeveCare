@@ -1,5 +1,5 @@
 // src/app/features/patient/appointments/appointments.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,9 +7,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Appointment {
   id: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
@@ -19,35 +24,11 @@ interface Appointment {
 @Component({
   selector: 'app-my-appointments',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule,
+  imports: [InitialsPipe, DateFrPipe, SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
             MatCardModule, MatTabsModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/patient/dashboard">
-            <mat-icon>home</mat-icon> Accueil
-          </a>
-          <a class="nav-item" routerLink="/patient/doctors">
-            <mat-icon>search</mat-icon> Trouver un médecin
-          </a>
-          <a class="nav-item active" routerLink="/patient/appointments">
-            <mat-icon>event</mat-icon> Mes rendez-vous
-          </a>
-          <a class="nav-item" routerLink="/patient/medical-record">
-            <mat-icon>folder_shared</mat-icon> Dossier médical
-          </a>
-          <a class="nav-item" routerLink="/patient/messages">
-            <mat-icon>chat</mat-icon> Messagerie
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'patient'" [activeRoute]="'/patient/appointments'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -64,11 +45,11 @@ interface Appointment {
         </div>
 
         <mat-tab-group *ngIf="!loading" animationDuration="200ms">
-          <mat-tab *ngFor="let tab of tabs"
+          <mat-tab *ngFor="let tab of tabs; trackBy: trackByItem"
                    [label]="tab.label + ' (' + getByStatus(tab.status).length + ')'">
             <div style="padding-top:20px;display:flex;flex-direction:column;gap:14px;">
 
-              <div *ngFor="let rdv of getByStatus(tab.status)"
+              <div *ngFor="let rdv of getByStatus(tab.status); trackBy: trackByItem"
                    [style.border-left]="'4px solid ' + getStatusColor(rdv.statut)"
                    style="background:white;border-radius:12px;padding:20px;
                           box-shadow:0 2px 8px rgba(0,0,0,0.06);
@@ -76,7 +57,7 @@ interface Appointment {
 
                 <div class="avatar avatar-lg"
                      [style.background]="getStatusColor(rdv.statut)">
-                  {{getInitials(rdv.doctorNom, rdv.doctorPrenom)}}
+                  {{ rdv.doctorNom | initials:rdv.doctorPrenom }}
                 </div>
 
                 <div style="flex:1;">
@@ -89,7 +70,6 @@ interface Appointment {
                         {{rdv.doctorSpecialite}}
                       </div>
                     </div>
-                    <!-- CORRECTION : [class] binding au lieu de class="badge-rdv-{{...}}" -->
                     <span [class]="'badge-rdv-' + rdv.statut">{{rdv.statut}}</span>
                   </div>
 
@@ -97,7 +77,7 @@ interface Appointment {
                               display:flex;flex-wrap:wrap;gap:12px;">
                     <span style="display:flex;align-items:center;gap:4px;">
                       <mat-icon style="font-size:15px;">calendar_today</mat-icon>
-                      {{formatDateFr(rdv.dateHeure)}}
+                      {{ rdv.dateHeure | dateFr }}
                     </span>
                     <span style="display:flex;align-items:center;gap:4px;">
                       <mat-icon style="font-size:15px;">
@@ -148,10 +128,11 @@ interface Appointment {
     </div>
   `
 })
-export class MyAppointmentsComponent implements OnInit {
+export class MyAppointmentsComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading = true;
   appointments: Appointment[] = [];
@@ -165,7 +146,7 @@ export class MyAppointmentsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.api.get<Appointment[]>('/api/appointments/patient/me').subscribe({
+    this.api.get<Appointment[]>('/api/appointments/patient/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => { this.appointments = d; this.loading = false; },
       error: () => { this.loading = false; }
     });
@@ -177,22 +158,19 @@ export class MyAppointmentsComponent implements OnInit {
 
   cancel(rdv: Appointment): void {
     this.actionLoading = rdv.id;
-    this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CANCELLED' }).subscribe({
+    this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CANCELLED' }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        rdv.statut = 'CANCELLED';
-        this.snackBar.open('Rendez-vous annulé', '✕', { duration: 3000 });
+        this.appointments = this.appointments.filter(a => a.id !== rdv.id);
+        this.notification.warning('Rendez-vous annulé', 3000);
         this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
-  }
 
   getStatusColor(s: string): string {
     const c: Record<string, string> = {
@@ -202,13 +180,15 @@ export class MyAppointmentsComponent implements OnInit {
     return c[s] ?? '#7F8C8D';
   }
 
-  formatDateFr(d: string): string {
-    if (!d) return '';
-    const date = new Date(d);
-    const jours = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-    const mois  = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${jours[date.getDay()]} ${date.getDate()} ${mois[date.getMonth()]} à ${h}h${m}`;
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
   }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
 }

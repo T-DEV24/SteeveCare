@@ -1,5 +1,5 @@
 // src/app/features/patient/medical-record/medical-record.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -9,31 +9,22 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { ApiService } from '../../../core/services/api.service';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
+import { MedicalRecordService } from '../../../core/services/medical-record.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-medical-record',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatFormFieldModule, MatInputModule,
             MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/patient/dashboard"><mat-icon>home</mat-icon> Accueil</a>
-          <a class="nav-item" routerLink="/patient/doctors"><mat-icon>search</mat-icon> Trouver un médecin</a>
-          <a class="nav-item" routerLink="/patient/appointments"><mat-icon>event</mat-icon> Mes rendez-vous</a>
-          <a class="nav-item active" routerLink="/patient/medical-record"><mat-icon>folder_shared</mat-icon> Dossier médical</a>
-          <a class="nav-item" routerLink="/patient/messages"><mat-icon>chat</mat-icon> Messagerie</a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;"><mat-icon>logout</mat-icon> Déconnexion</a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'patient'" [activeRoute]="'/patient/medical-record'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -52,7 +43,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
         <div *ngIf="!loading"
              style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-          <mat-card *ngFor="let section of sections" style="padding:24px;">
+          <mat-card *ngFor="let section of sections; trackBy: trackByItem" style="padding:24px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
               <mat-icon [style.color]="section.color">{{section.icon}}</mat-icon>
               <h3 style="font-size:15px;font-weight:600;color:#2C3E50;">{{section.label}}</h3>
@@ -80,10 +71,11 @@ import { AuthService } from '../../../core/services/auth.service';
     </div>
   `
 })
-export class MedicalRecordComponent implements OnInit {
+export class MedicalRecordComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
-  private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private medicalRecordService = inject(MedicalRecordService);
+  private notification = inject(NotificationService);
 
   loading  = true;
   saving   = false;
@@ -99,7 +91,7 @@ export class MedicalRecordComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.api.get<any>('/api/patients/me/medical-record').subscribe({
+    this.medicalRecordService.getRecord().pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => {
         this.record['antecedentsFamiliaux'] = d.antecedentsFamiliaux ?? '';
         this.record['traitementEnCours']    = d.traitementEnCours ?? '';
@@ -112,13 +104,24 @@ export class MedicalRecordComponent implements OnInit {
 
   save(): void {
     this.saving = true;
-    this.api.patch('/api/patients/me/medical-record', this.record).subscribe({
+    this.medicalRecordService.updateRecord(this.record).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.saving = false;
         this.editMode = false;
-        this.snackBar.open('Dossier médical mis à jour ✅', '✕', { duration: 3000 });
+        this.notification.success('Dossier médical mis à jour ✅', 3000);
       },
       error: () => { this.saving = false; }
     });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
 }
