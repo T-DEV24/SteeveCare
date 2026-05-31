@@ -76,6 +76,7 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
                     Dr. {{selectedContact.prenom}} {{selectedContact.nom}}
                   </div>
                   <div style="font-size:12px;color:#7F8C8D;">{{selectedContact.specialite}}</div>
+                  <div class="online-status"><span></span> En ligne</div>
                 </div>
               </div>
 
@@ -152,6 +153,8 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
       to { opacity: 1; transform: translateY(0); }
     }
     .fade-in-up { animation: fadeInUp 0.22s ease-out both; }
+    .online-status { display:flex; align-items:center; gap:5px; margin-top:3px; color:#27AE60; font-size:11px; font-weight:600; }
+    .online-status span { width:7px; height:7px; border-radius:50%; background:#27AE60; box-shadow:0 0 0 3px rgba(39,174,96,.14); }
     .typing-dots { display:inline-flex; gap:3px; align-items:center; }
     .typing-dots span { width:5px; height:5px; border-radius:50%; background:#7F8C8D; animation: typingPulse 1s infinite ease-in-out; }
     .typing-dots span:nth-child(2) { animation-delay: .15s; }
@@ -173,7 +176,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
   loadingMessages = false;
   sending = false;
   unreadCount = 0;
-  private intervalId: any = null;
+  private pollInterval: any;
   private unreadIntervalId: any = null;
   private userWasAtBottom = true;
 
@@ -188,14 +191,13 @@ export class MessagesComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadContacts();
     this.loadUnreadCount();
-    this.intervalId = setInterval(() => this.refreshMessages(), 5000);
     this.unreadIntervalId = setInterval(() => this.loadUnreadCount(), 5000);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.intervalId) clearInterval(this.intervalId);
+    clearInterval(this.pollInterval);
     if (this.unreadIntervalId) clearInterval(this.unreadIntervalId);
   }
 
@@ -233,16 +235,20 @@ export class MessagesComponent implements OnInit, OnDestroy {
     this.selectedContact = c;
     this.loadingMessages = true;
     this.messages = [];
+    clearInterval(this.pollInterval);
     this.refreshMessages(true);
+    this.pollInterval = setInterval(() => this.refreshMessages(), 5000);
   }
 
   refreshMessages(forceScroll = false): void {
     if (!this.selectedContact) return;
     const shouldKeepBottom = forceScroll || this.isAtBottom();
-    this.api.get<Message[]>(`/api/messages/${this.selectedContact.id}`).pipe(takeUntil(this.destroy$)).subscribe({
+    this.api.get<Message[]>(`/api/messages/conversation/${this.selectedContact.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (msgs) => {
         const hadNewMessage = msgs.length !== this.messages.length || msgs.some((m, i) => m.id !== this.messages[i]?.id);
-        this.messages = msgs;
+        if (hadNewMessage) {
+          this.messages = msgs;
+        }
         this.loadingMessages = false;
         if ((shouldKeepBottom || this.userWasAtBottom) && hadNewMessage) this.scrollToBottom();
       },
@@ -258,6 +264,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
     const keyboardEvent = event as KeyboardEvent;
     if (keyboardEvent.shiftKey) return;
     event.preventDefault();
+    if (!this.newMessage.trim()) return;
     this.sendMessage();
   }
 
@@ -287,8 +294,8 @@ export class MessagesComponent implements OnInit, OnDestroy {
   private scrollToBottom(): void {
     setTimeout(() => {
       const el = this.msgContainer?.nativeElement;
-      if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-    }, 0);
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 50);
   }
 
   trackMessage(_: number, message: Message): number {
