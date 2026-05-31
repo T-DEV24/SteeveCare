@@ -15,7 +15,7 @@ import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
 import { Subject, takeUntil } from 'rxjs';
 
 interface Appointment {
-  id: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
+  id: number; doctorId?: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
   dateHeure: string; type: string; statut: string;
 }
 
@@ -47,33 +47,79 @@ interface PrescriptionPreview {
           </div>
         </div>
 
-        <!-- 4 Action Cards -->
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);
-                    gap:16px;margin-bottom:28px;">
-          <a *ngFor="let card of actionCards; trackBy: trackByItem" [routerLink]="card.link"
-             style="text-decoration:none;">
-            <div style="background:white;border-radius:14px;padding:24px;
-                        cursor:pointer;transition:all 0.2s;
-                        box-shadow:0 2px 12px rgba(0,0,0,0.06);
-                        border:1px solid #EEF0F4;display:flex;
-                        align-items:center;gap:16px;"
-                 onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.10)'"
-                 onmouseleave="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+        <!-- Stat cards enrichies -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);
+                    gap:16px;margin-bottom:24px;">
+          <mat-card *ngFor="let card of statCards; trackBy: trackByItem"
+                    style="padding:22px;border-radius:18px;border:1px solid #EEF0F4;">
+            <div style="display:flex;align-items:center;gap:14px;">
               <div [style.background]="card.bg"
-                   style="width:52px;height:52px;border-radius:14px;
+                   style="width:54px;height:54px;border-radius:16px;
                           display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <mat-icon [style.color]="card.color"
-                          style="font-size:26px;width:26px;height:26px;">
+                <mat-icon [style.color]="card.color" style="font-size:28px;width:28px;height:28px;">
                   {{card.icon}}
                 </mat-icon>
               </div>
               <div>
-                <div style="font-weight:600;font-size:15px;color:#2C3E50;">{{card.title}}</div>
-                <div style="font-size:12px;color:#7F8C8D;margin-top:2px;">{{card.subtitle}}</div>
+                <div style="font-size:26px;font-weight:800;color:#2C3E50;line-height:1;">
+                  {{card.value}}
+                </div>
+                <div style="font-size:13px;color:#7F8C8D;margin-top:6px;font-weight:600;">
+                  {{card.title}}
+                </div>
               </div>
             </div>
-          </a>
+          </mat-card>
         </div>
+
+        <!-- Prochain rendez-vous mis en avant -->
+        <mat-card *ngIf="nextAppointment as rdv"
+                  style="padding:26px;margin-bottom:24px;border-radius:22px;
+                         background:linear-gradient(135deg,#0B5345,#27AE60);color:white;
+                         box-shadow:0 18px 44px rgba(11,83,69,0.22);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:18px;">
+              <div style="width:64px;height:64px;border-radius:20px;background:rgba(255,255,255,0.18);
+                          display:flex;align-items:center;justify-content:center;">
+                <mat-icon style="font-size:34px;width:34px;height:34px;">event_available</mat-icon>
+              </div>
+              <div>
+                <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:.78;font-weight:700;">
+                  Prochain rendez-vous
+                </div>
+                <h2 style="margin:4px 0 6px;font-size:24px;font-weight:800;">
+                  {{formatLongDate(rdv.dateHeure)}}
+                </h2>
+                <p style="margin:0;opacity:.92;font-size:14px;">
+                  Dr. {{rdv.doctorPrenom}} {{rdv.doctorNom}} · {{rdv.doctorSpecialite}}
+                </p>
+              </div>
+            </div>
+            <button mat-raised-button routerLink="/patient/appointments"
+                    style="background:white;color:#0B5345;border-radius:999px;font-weight:700;padding:0 20px;">
+              <mat-icon>visibility</mat-icon>
+              Voir les détails
+            </button>
+          </div>
+        </mat-card>
+
+        <!-- Actions rapides -->
+        <mat-card style="padding:20px;margin-bottom:24px;border-radius:18px;">
+          <h2 style="font-size:16px;font-weight:700;color:#1A5276;margin:0 0 16px;">
+            Actions rapides
+          </h2>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;">
+            <a *ngFor="let action of quickActions; trackBy: trackByItem" [routerLink]="action.link"
+               style="text-decoration:none;color:#2C3E50;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:110px;">
+              <span [style.background]="action.color"
+                    style="width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;
+                           box-shadow:0 10px 24px rgba(0,0,0,0.14);">
+                <mat-icon>{{action.icon}}</mat-icon>
+              </span>
+              <span style="font-size:12px;font-weight:700;text-align:center;">{{action.label}}</span>
+            </a>
+          </div>
+        </mat-card>
 
         <!-- Graphique RDV 30 jours -->
         <mat-card style="padding:24px;margin-bottom:24px;">
@@ -217,27 +263,12 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
   allAppointments: Appointment[] = [];
   recentPrescriptions: PrescriptionPreview[] = [];
 
-  actionCards = [
-    {
-      icon: 'videocam', title: 'Consulter un médecin',
-      subtitle: 'Téléconsultation vidéo ou messagerie',
-      link: '/patient/doctors', color: '#2980B9', bg: '#D6EAF8'
-    },
-    {
-      icon: 'calendar_today', title: 'Mes rendez-vous',
-      subtitle: 'Voir et gérer vos consultations',
-      link: '/patient/appointments', color: '#27AE60', bg: '#D5F5E3'
-    },
-    {
-      icon: 'folder_shared', title: 'Dossier médical',
-      subtitle: 'Antécédents, ordonnances, résultats',
-      link: '/patient/medical-record', color: '#E67E22', bg: '#FDEBD0'
-    },
-    {
-      icon: 'chat', title: 'Messagerie',
-      subtitle: 'Échanger avec votre médecin',
-      link: '/patient/messages', color: '#8E44AD', bg: '#E8DAEF'
-    },
+  unreadCount = 0;
+
+  quickActions = [
+    { icon: 'event_available', label: 'Prendre RDV', link: '/patient/doctors', color: '#1A5276' },
+    { icon: 'chat', label: 'Messagerie', link: '/patient/messages', color: '#6C3483' },
+    { icon: 'folder_shared', label: 'Dossier médical', link: '/patient/medical-record', color: '#0B5345' },
   ];
 
   ngOnInit(): void {
@@ -253,6 +284,11 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
       error: () => { this.loadingRdv = false; }
     });
 
+    this.api.get<number | { count: number }>('/api/messages/unread-count').pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => { this.unreadCount = typeof res === 'number' ? res : (res?.count ?? 0); },
+      error: () => { this.unreadCount = 0; }
+    });
+
     this.api.get<PrescriptionPreview[]>('/api/prescriptions/patient/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.recentPrescriptions = data
@@ -261,6 +297,23 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
       },
       error: () => { this.recentPrescriptions = []; }
     });
+  }
+
+  get nextAppointment(): Appointment | null {
+    return this.upcomingRdv[0] ?? null;
+  }
+
+  get doctorsCount(): number {
+    const doctors = new Set(this.allAppointments.map(a => a.doctorId ?? `${a.doctorPrenom}-${a.doctorNom}`));
+    return doctors.size;
+  }
+
+  get statCards() {
+    return [
+      { title: 'Rendez-vous', value: this.upcomingRdv.length, icon: 'event_available', color: '#1A5276', bg: '#D6EAF8' },
+      { title: 'Médecins', value: this.doctorsCount, icon: 'medical_services', color: '#0B5345', bg: '#D5F5E3' },
+      { title: 'Messages', value: this.unreadCount, icon: 'chat', color: '#6C3483', bg: '#E8DAEF' },
+    ];
   }
 
   get appointmentChart() {
@@ -289,6 +342,14 @@ export class PatientDashboardComponent implements OnInit, OnDestroy {
     return this.appointmentChart.reduce((sum, bar) => sum + bar.count, 0);
   }
 
+
+  formatLongDate(d?: string): string {
+    if (!d) return 'Date à confirmer';
+    return new Date(d).toLocaleString('fr-FR', {
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
 
   formatShortDate(d?: string): string {
     if (!d) return '—';

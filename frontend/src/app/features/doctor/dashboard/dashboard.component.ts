@@ -34,7 +34,7 @@ interface Appointment {
       <main class="main-content" style="flex:1;">
         <div class="page-header">
           <div>
-            <h1>Bonjour, Dr. {{auth.prenom}} 👋</h1>
+            <h1>Bonjour Dr. {{auth.prenom}} {{auth.nom}} 👋</h1>
             <p style="color:#7F8C8D;font-size:13px;">
               Gérez vos rendez-vous et consultations
             </p>
@@ -99,6 +99,58 @@ interface Appointment {
                     {{weekTrend >= 0 ? '+' : ''}}{{weekTrend}} RDV
                   </div>
                 </div>
+              </div>
+            </div>
+          </mat-card>
+
+          <!-- Rendez-vous du jour avec filtre rapide -->
+          <mat-card style="padding:24px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap;">
+              <div>
+                <h2 style="font-size:16px;font-weight:700;margin:0;color:#2C3E50;">
+                  Rendez-vous d'aujourd'hui
+                </h2>
+                <p style="font-size:12px;color:#7F8C8D;margin:4px 0 0;">
+                  {{todayAppointments.length}} consultation(s) prévues ce jour
+                </p>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button *ngFor="let filter of todayFilters; trackBy: trackByItem"
+                        mat-stroked-button
+                        type="button"
+                        (click)="todayFilter = filter.value"
+                        [style.background]="todayFilter === filter.value ? '#0B5345' : 'white'"
+                        [style.color]="todayFilter === filter.value ? 'white' : '#0B5345'"
+                        style="border-radius:999px;font-size:12px;">
+                  {{filter.label}}
+                </button>
+              </div>
+            </div>
+
+            <div *ngIf="filteredTodayAppointments.length === 0" class="empty-state" style="padding:32px;">
+              <mat-icon>calendar_today</mat-icon>
+              <h3>Aucun RDV aujourd'hui</h3>
+              <p>Votre planning du jour est libre.</p>
+            </div>
+
+            <div *ngIf="filteredTodayAppointments.length > 0" style="display:flex;flex-direction:column;gap:12px;">
+              <div *ngFor="let rdv of filteredTodayAppointments; trackBy: trackByItem"
+                   style="display:flex;align-items:center;justify-content:space-between;gap:14px;background:#F5F6FA;
+                          border-radius:12px;padding:14px 16px;border-left:4px solid #0B5345;">
+                <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                  <div class="avatar" style="background:#0B5345;flex-shrink:0;">
+                    {{ rdv.patientNom | initials:rdv.patientPrenom }}
+                  </div>
+                  <div style="min-width:0;">
+                    <div style="font-weight:700;color:#2C3E50;">
+                      {{rdv.patientPrenom}} {{rdv.patientNom}}
+                    </div>
+                    <div style="font-size:12px;color:#7F8C8D;">
+                      {{ rdv.dateHeure | dateFr }} · {{rdv.type === 'VIDEO' ? 'Vidéo' : 'Message'}}
+                    </div>
+                  </div>
+                </div>
+                <span [class]="'badge-rdv-' + rdv.statut">{{rdv.statut}}</span>
               </div>
             </div>
           </mat-card>
@@ -245,6 +297,13 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   showRejectDialog = false;
   rejectMotif = '';
   selectedRdv: Appointment | null = null;
+  todayFilter: 'ALL' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' = 'ALL';
+  todayFilters = [
+    { label: 'Tous', value: 'ALL' as const },
+    { label: 'En attente', value: 'PENDING' as const },
+    { label: 'Confirmés', value: 'CONFIRMED' as const },
+    { label: 'Terminés', value: 'COMPLETED' as const },
+  ];
 
   get pending() {
     return this.all
@@ -253,6 +312,24 @@ export class DoctorDashboardComponent implements OnInit, OnDestroy {
   }
   get confirmed() { return this.all.filter(a => a.statut === 'CONFIRMED'); }
   get completed() { return this.all.filter(a => a.statut === 'COMPLETED'); }
+
+  get todayAppointments(): Appointment[] {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return this.all
+      .filter(a => {
+        const d = new Date(a.dateHeure);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === today.getTime();
+      })
+      .sort((a, b) => new Date(a.dateHeure).getTime() - new Date(b.dateHeure).getTime());
+  }
+
+  get filteredTodayAppointments(): Appointment[] {
+    return this.todayFilter === 'ALL'
+      ? this.todayAppointments
+      : this.todayAppointments.filter(a => a.statut === this.todayFilter);
+  }
 
   get doctorSidebarBadges(): Record<string, number> {
     return { '/doctor/appointments': this.pending.length };

@@ -40,7 +40,7 @@ interface Prescription {
         </div>
 
         <!-- Stats rapides -->
-        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
           <div class="stat-card">
             <div class="stat-icon" style="background:#6C3483;"><mat-icon>description</mat-icon></div>
             <div class="stat-value">{{prescriptions.length}}</div>
@@ -56,6 +56,11 @@ interface Prescription {
             <div class="stat-value">{{delivered.length}}</div>
             <div class="stat-label">Délivrées</div>
           </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#E67E22;"><mat-icon>today</mat-icon></div>
+            <div class="stat-value">{{pendingTodayCount}}</div>
+            <div class="stat-label">En attente aujourd'hui</div>
+          </div>
         </div>
 
         <!-- Recherche par code -->
@@ -66,7 +71,7 @@ interface Prescription {
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:#F5EEF8;border-radius:10px;padding:12px;">
             <div style="display:flex;align-items:center;gap:8px;color:#6C3483;font-weight:600;font-size:13px;">
               <span style="width:10px;height:10px;background:#F39C12;border-radius:50%;display:inline-block;animation:pendingPulse 1.4s infinite;"></span>
-              {{pendingCount}} ordonnance(s) en attente · mise à jour automatique toutes les 30s
+              {{pendingTodayCount}} ordonnance(s) en attente aujourd'hui · mise à jour automatique toutes les 30s
             </div>
             <button mat-stroked-button type="button" (click)="simulateQrScan()" style="border-radius:8px;color:#6C3483;">
               <mat-icon>qr_code_scanner</mat-icon> Scanner QR simulé
@@ -76,7 +81,7 @@ interface Prescription {
             <input #codeInput
                    [(ngModel)]="searchCode"
                    (keydown.enter)="searchByCode()"
-                   [placeholder]="'Ex: SC-' + currentYear + '-A3F7C2B1'"
+                   [placeholder]="withdrawalCodePlaceholder"
                    style="flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:8px;
                           font-size:14px;font-family:monospace;outline:none;letter-spacing:1px;
                           border-color:#E8DAEF;">
@@ -265,6 +270,7 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
   searchCode    = '';
   searchResult: Prescription | null = null;
   searchError   = '';
+  pendingTodayCount = 0;
   private intervalId: any = null;
 
   cols = ['date','patient','medicaments','code','statut'];
@@ -272,10 +278,15 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
   get pending()   { return this.prescriptions.filter(p => !p.delivree); }
   get delivered() { return this.prescriptions.filter(p => p.delivree); }
   get pendingCount(): number { return this.pending.length; }
+  get withdrawalCodePlaceholder(): string { return `Ex: SC-${new Date().getFullYear()}-XXXXXXXX`; }
 
   ngOnInit(): void {
     this.loadPrescriptions();
-    this.intervalId = setInterval(() => this.loadPrescriptions(false), 30000);
+    this.loadPendingTodayCount();
+    this.intervalId = setInterval(() => {
+      this.loadPrescriptions(false);
+      this.loadPendingTodayCount();
+    }, 30000);
     setTimeout(() => this.focusCodeInput(), 0);
   }
 
@@ -291,6 +302,15 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
       next: (d) => { this.prescriptions = d; this.loading = false; },
       error: () => { this.loading = false; }
     });
+  }
+
+  loadPendingTodayCount(): void {
+    this.api.get<number | { count: number }>('/api/pharmacy/prescriptions/pending-count')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => { this.pendingTodayCount = typeof res === 'number' ? res : (res?.count ?? 0); },
+        error: () => { this.pendingTodayCount = this.pending.length; }
+      });
   }
 
   focusCodeInput(): void {
