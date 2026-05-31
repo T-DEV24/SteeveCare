@@ -41,12 +41,7 @@ export interface NavLink {
            style="position:relative;">
           <mat-icon>{{link.icon}}</mat-icon>
           {{link.label}}
-          <span *ngIf="badgeCounts[link.route] > 0"
-                class="sidebar-badge-pulse"
-                style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
-                       background:#E74C3C;color:white;border-radius:999px;min-width:20px;
-                       height:20px;padding:0 6px;font-size:11px;font-weight:700;
-                       display:flex;align-items:center;justify-content:center;">
+          <span *ngIf="badgeCounts[link.route] > 0" class="notif-badge">
             {{badgeCounts[link.route]}}
           </span>
         </a>
@@ -60,14 +55,21 @@ export interface NavLink {
     </aside>
   `,
   styles: [`
-    @keyframes sidebarBadgePulse {
-      0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.65); }
-      70% { box-shadow: 0 0 0 8px rgba(231, 76, 60, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-    }
-
-    .sidebar-badge-pulse {
-      animation: sidebarBadgePulse 1.4s infinite;
+    .notif-badge {
+      position:absolute;
+      top:6px;
+      right:6px;
+      background:#E74C3C;
+      color:white;
+      border-radius:50%;
+      width:18px;
+      height:18px;
+      font-size:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      animation:pulse 2s infinite;
+      font-weight:700;
     }
 
     .sidebar-logo img {

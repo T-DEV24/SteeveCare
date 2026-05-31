@@ -89,10 +89,10 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
                                         style="margin:0 auto;"></mat-progress-spinner>
                 </div>
                 <div *ngFor="let m of messages; trackBy: trackMessage"
-                     class="message-item fade-in-up"
+                     class="message-item"
                      [style.align-items]="m.senderId === auth.userId ? 'flex-end' : 'flex-start'"
                      style="display:flex;flex-direction:column;">
-                  <div [style.background]="m.senderId === auth.userId ? '#1A5276' : 'white'"
+                  <div class="message-bubble" [style.background]="m.senderId === auth.userId ? '#1A5276' : 'white'"
                        [style.color]="m.senderId === auth.userId ? 'white' : '#2C3E50'"
                        style="max-width:70%;padding:10px 14px;border-radius:12px;
                               font-size:13px;line-height:1.5;white-space:pre-wrap;
@@ -103,10 +103,8 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
                     {{formatTime(m.timestamp)}}
                   </span>
                 </div>
-                <div *ngIf="showTypingIndicator"
-                     style="display:flex;align-items:center;gap:8px;color:#7F8C8D;font-size:12px;padding:4px 2px;">
-                  <span>En train d'écrire</span>
-                  <span class="typing-dots"><span></span><span></span><span></span></span>
+                <div *ngIf="contactTyping" class="typing-indicator" aria-label="Le contact est en train d'écrire">
+                  <span></span><span></span><span></span>
                 </div>
                 <div *ngIf="!loadingMessages && messages.length === 0"
                      style="text-align:center;color:#7F8C8D;font-size:13px;padding:20px;">
@@ -117,6 +115,7 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
               <div style="background:white;padding:12px 16px;border-top:1px solid #EEF0F4;">
                 <div style="display:flex;gap:10px;align-items:flex-end;">
                   <textarea [(ngModel)]="newMessage"
+                            (ngModelChange)="onMessageInput()"
                             maxlength="500"
                             rows="1"
                             placeholder="Écrire un message..."
@@ -136,7 +135,7 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
                   <span style="font-size:11px;color:#7F8C8D;">Entrée pour envoyer · Shift+Entrée pour une nouvelle ligne</span>
-                  <span [style.color]="newMessage.length > 500 ? '#E74C3C' : '#7F8C8D'" style="font-size:11px;">
+                  <span [style.color]="newMessage.length > 450 ? '#E74C3C' : '#7F8C8D'" style="font-size:11px;">
                     {{newMessage.length}}/500
                   </span>
                 </div>
@@ -149,10 +148,10 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
   `,
   styles: [`
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
     }
-    .fade-in-up { animation: fadeInUp 0.22s ease-out both; }
+    .message-bubble { animation: fadeInUp 0.2s ease; }
     .online-status { display:flex; align-items:center; gap:5px; margin-top:3px; color:#27AE60; font-size:11px; font-weight:600; }
     .online-status span { width:7px; height:7px; border-radius:50%; background:#27AE60; box-shadow:0 0 0 3px rgba(39,174,96,.14); }
     .typing-dots { display:inline-flex; gap:3px; align-items:center; }
@@ -176,17 +175,17 @@ export class MessagesComponent implements OnInit, OnDestroy {
   loadingMessages = false;
   sending = false;
   unreadCount = 0;
+  contactTyping = false;
   private pollInterval: any;
+  private typingIntervalId: any;
   private unreadIntervalId: any = null;
+  private lastTypingSentAt = 0;
   private userWasAtBottom = true;
 
   get sidebarBadges(): Record<string, number> {
     return { '/patient/messages': this.unreadCount };
   }
 
-  get showTypingIndicator(): boolean {
-    return this.newMessage.trim().length > 0 && !this.sending;
-  }
 
   ngOnInit(): void {
     this.loadContacts();
@@ -198,6 +197,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     clearInterval(this.pollInterval);
+    clearInterval(this.typingIntervalId);
     if (this.unreadIntervalId) clearInterval(this.unreadIntervalId);
   }
 
@@ -235,9 +235,13 @@ export class MessagesComponent implements OnInit, OnDestroy {
     this.selectedContact = c;
     this.loadingMessages = true;
     this.messages = [];
+    this.contactTyping = false;
     clearInterval(this.pollInterval);
+    clearInterval(this.typingIntervalId);
     this.refreshMessages(true);
+    this.checkContactTyping();
     this.pollInterval = setInterval(() => this.refreshMessages(), 5000);
+    this.typingIntervalId = setInterval(() => this.checkContactTyping(), 2000);
   }
 
   refreshMessages(forceScroll = false): void {
@@ -258,6 +262,31 @@ export class MessagesComponent implements OnInit, OnDestroy {
 
   onMessagesScroll(): void {
     this.userWasAtBottom = this.isAtBottom();
+  }
+
+  onMessageInput(): void {
+    if (!this.selectedContact || !this.newMessage.trim()) return;
+    const now = Date.now();
+    if (now - this.lastTypingSentAt < 1200) return;
+    this.lastTypingSentAt = now;
+    this.api.post(`/api/messages/typing/${this.selectedContact.id}`, {})
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({ error: () => {} });
+  }
+
+  checkContactTyping(): void {
+    if (!this.selectedContact) {
+      this.contactTyping = false;
+      return;
+    }
+    this.api.get<boolean | { typing?: boolean; isTyping?: boolean }>(`/api/messages/typing/${this.selectedContact.id}`)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.contactTyping = typeof res === 'boolean' ? res : !!(res?.typing ?? res?.isTyping);
+        },
+        error: () => { this.contactTyping = false; }
+      });
   }
 
   handleEnter(event: Event): void {

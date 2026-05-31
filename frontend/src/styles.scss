@@ -551,3 +551,12 @@ select:focus-visible,
 
 .badge-rdv-DELIVERED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
 .badge-rdv-PHARMACY_PENDING { background:#FDEBD0; color:#7E3B00; padding:4px 12px; border-radius:20px; font-weight:600; }
+
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+@keyframes fadeInUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+.typing-indicator span { display:inline-block; width:6px; height:6px;
+  border-radius:50%; background:#7F8C8D; margin:0 2px;
+  animation: typing 1.2s infinite; }
+.typing-indicator span:nth-child(2) { animation-delay:0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay:0.4s; }
+@keyframes typing { 0%,60%,100%{transform:none;opacity:0.4} 30%{transform:translateY(-4px);opacity:1} }
