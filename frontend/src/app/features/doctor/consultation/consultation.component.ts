@@ -241,7 +241,7 @@ interface PreviousConsultation {
 
                     <div #prescriptionPreview class="prescription-paper">
                       <div class="prescription-header">
-                        <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare">
+                        <img src="assets/brand/steevacare-logo.png" alt="SteevaCare">
                         <div>
                           <h3>Dr {{appointment.doctorPrenom}} {{appointment.doctorNom}}</h3>
                           <p>{{appointment.doctorSpecialite || 'Médecine générale'}}</p>
