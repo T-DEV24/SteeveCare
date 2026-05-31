@@ -23,7 +23,8 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
   template: `
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
                 background:linear-gradient(135deg,#1A5276 0%,#27AE60 100%);padding:20px;">
-      <div style="background:white;border-radius:20px;padding:44px 40px;
+      <div class="login-card" [class.shake]="loginError"
+           style="background:white;border-radius:20px;padding:44px 40px;
                   width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
 
         <!-- Logo -->
@@ -37,7 +38,7 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
           <!-- Email -->
-          <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+          <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
             <mat-label>Adresse email</mat-label>
             <input matInput formControlName="email" type="email"
                    placeholder="vous@exemple.cm" autocomplete="email">
@@ -51,7 +52,7 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
           </mat-form-field>
 
           <!-- Mot de passe -->
-          <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
+          <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
             <mat-label>Mot de passe</mat-label>
             <input matInput formControlName="password"
                    [type]="showPassword ? 'text' : 'password'"
@@ -121,7 +122,27 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
         </details>
       </div>
     </div>
-  `
+  `,
+  styles: [`
+    .login-card {
+      animation: fadeIn 0.45s ease-out both;
+    }
+
+    .login-card.shake {
+      animation: shake 0.42s ease-in-out both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(18px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+  `]
 })
 export class LoginComponent {
   private fb          = inject(FormBuilder);
@@ -131,6 +152,7 @@ export class LoginComponent {
 
   loading      = false;
   showPassword = false;
+  loginError   = false;
   readonly isProduction = !isDevMode();
   readonly showDemoAccounts = !this.isProduction;
 
@@ -154,6 +176,7 @@ export class LoginComponent {
   onSubmit(): void {
     if (this.form.invalid || this.loading) return;
     this.loading = true;
+    this.loginError = false;
 
     this.api.post<AuthResponse>('/api/auth/login', this.form.value)
       .subscribe({
@@ -163,6 +186,8 @@ export class LoginComponent {
         },
         error: (err) => {
           this.loading = false;
+          this.loginError = true;
+          setTimeout(() => { this.loginError = false; }, 450);
           const msg = err.error?.erreur ?? 'Email ou mot de passe incorrect';
           this.snackBar.open(msg, '✕', {
             duration: 5000,
