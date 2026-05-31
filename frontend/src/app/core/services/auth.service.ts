@@ -33,8 +33,10 @@ export class AuthService {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const parsed: AuthResponse = JSON.parse(stored);
-        if (parsed?.accessToken) {
+        if (parsed?.accessToken && !this.isTokenExpired(parsed.accessToken)) {
           this._currentUser.set(parsed);
+        } else {
+          localStorage.removeItem(this.STORAGE_KEY);
         }
       }
     } catch {
@@ -54,11 +56,34 @@ export class AuthService {
     this.login(response);
   }
 
-  /** Déconnexion */
+  /** Déconnexion : supprime systématiquement le JWT persistant. */
   logout(): void {
     localStorage.removeItem(this.STORAGE_KEY);
     this._currentUser.set(null);
     this.router.navigate(['/auth/login']);
+  }
+
+  /** Vérifie l'expiration du JWT à partir du claim exp (en secondes). */
+  isTokenExpired(token: string | null = this.token()): boolean {
+    if (!token) return true;
+
+    const payload = this.decodeJwtPayload(token);
+    if (!payload?.exp) return true;
+
+    return Date.now() >= payload.exp * 1000;
+  }
+
+  private decodeJwtPayload(token: string): { exp?: number } | null {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    try {
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+      return JSON.parse(atob(padded));
+    } catch {
+      return null;
+    }
   }
 
   /** Vérifie si l'utilisateur possède l'un des rôles fournis */
