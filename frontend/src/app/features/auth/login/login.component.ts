@@ -75,7 +75,7 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
 
           <!-- Bouton connexion -->
           <button mat-raised-button type="submit"
-                  [disabled]="form.invalid || loading"
+                  [disabled]="loginForm.invalid || loading"
                   style="width:100%;margin-top:16px;padding:14px;font-size:16px;
                          font-weight:600;border-radius:10px;background:#1A5276;
                          color:white;">
@@ -161,6 +161,10 @@ export class LoginComponent {
     email:    ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]]
   });
+
+  get loginForm() {
+    return this.form;
+  }
 
   demoAccounts = this.showDemoAccounts ? [
     { role: 'Super Admin', email: 'superadmin@steevacare.cm', password: 'Admin@12345',   color: '#922B21' },

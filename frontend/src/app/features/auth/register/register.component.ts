@@ -21,7 +21,7 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
 const passwordMatchValidator: ValidatorFn = (group: AbstractControl): ValidationErrors | null => {
   const pass    = group.get('password')?.value;
   const confirm = group.get('confirmPassword')?.value;
-  return pass && confirm && pass !== confirm ? { mismatch: true } : null;
+  return pass && confirm && pass !== confirm ? { passwordMismatch: true } : null;
 };
 
 @Component({
@@ -115,7 +115,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                     {{showConfirm?'visibility_off':'visibility'}}
                   </mat-icon>
                 </button>
-                <mat-error *ngIf="step1.hasError('mismatch')">
+                <mat-error *ngIf="form.hasError('passwordMismatch')">
                   Les mots de passe ne correspondent pas
                 </mat-error>
               </mat-form-field>
@@ -156,7 +156,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                   Obligatoire
                 </mat-error>
                 <mat-error *ngIf="step2.get('telephone')?.hasError('pattern')">
-                  Numéro camerounais invalide (ex: 677123456)
+                  Numéro camerounais 9 chiffres requis
                 </mat-error>
               </mat-form-field>
 
@@ -265,10 +265,14 @@ export class RegisterComponent {
     confirmPassword: ['', Validators.required]
   }, { validators: passwordMatchValidator });
 
+  get form() {
+    return this.step1;
+  }
+
   step2 = this.fb.group({
     nom:       ['', Validators.required],
     prenom:    ['', Validators.required],
-    telephone: ['', [Validators.required, Validators.pattern('^(6[5-9][0-9]{7}|2[0-9]{8}|[0-9]{9})$')]],
+    telephone: ['', [Validators.required, Validators.pattern('^[0-9]{9}$')]],
     ville:     ['', Validators.required],
     sexe:      ['', Validators.required]
   });
