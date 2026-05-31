@@ -134,7 +134,12 @@ export class SplashScreenComponent implements OnInit, OnDestroy {
 
   splashState = 'visible';
   loadingText = 'Initialisation...';
-  private intervalId: any = null;
+  private readonly maxSplashDurationMs = 3000;
+  private readonly fadeOutDurationMs = 650;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private fallbackTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private emitTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private isCompleted = false;
 
   private loadingMessages = [
     'Initialisation...',
@@ -149,20 +154,31 @@ export class SplashScreenComponent implements OnInit, OnDestroy {
       i++;
       if (i < this.loadingMessages.length) {
         this.loadingText = this.loadingMessages[i];
-      } else {
+      } else if (this.intervalId !== null) {
         clearInterval(this.intervalId);
+        this.intervalId = null;
       }
     }, 700);
 
-    // Disparition après 3 secondes
-    setTimeout(() => {
-      this.splashState = 'hidden';
-      setTimeout(() => this.splashDone.emit(), 650);
-    }, 3000);
+    // Fallback de sécurité : le splash disparaît au plus tard après 3 secondes,
+    // même si une vérification API du token reste bloquée ou échoue côté parent.
+    this.fallbackTimeoutId = setTimeout(() => {
+      this.completeSplash();
+    }, this.maxSplashDurationMs);
   }
 
   ngOnDestroy(): void {
-    if (this.intervalId) clearInterval(this.intervalId);
+    if (this.intervalId !== null) clearInterval(this.intervalId);
+    if (this.fallbackTimeoutId !== null) clearTimeout(this.fallbackTimeoutId);
+    if (this.emitTimeoutId !== null) clearTimeout(this.emitTimeoutId);
+  }
+
+  private completeSplash(): void {
+    if (this.isCompleted) return;
+
+    this.isCompleted = true;
+    this.splashState = 'hidden';
+    this.emitTimeoutId = setTimeout(() => this.splashDone.emit(), this.fadeOutDurationMs);
   }
 
   trackByItem(_: number, item: any): unknown {
