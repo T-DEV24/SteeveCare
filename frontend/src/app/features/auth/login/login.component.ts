@@ -9,7 +9,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
-import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService, AuthResponse } from '../../../core/services/auth.service';
 import { Subject, takeUntil } from 'rxjs';
@@ -25,23 +24,29 @@ import { Subject, takeUntil } from 'rxjs';
   template: `
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;
                 background:linear-gradient(135deg,#1A5276 0%,#27AE60 100%);padding:20px;">
-      <div class="login-card" [class.shake]="loginError"
+      <div class="login-card" [class.shake]="hasError"
            style="background:white;border-radius:20px;padding:44px 40px;
                   width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
 
-        <!-- Logo -->
+        <!-- Branding -->
         <div style="text-align:center;margin-bottom:32px;">
-          <img src="assets/brand/steevacare-logo.svg"
-               alt="SteevaCare - Télémédecine pour l'Afrique"
-               style="display:block;width:180px;max-width:78%;height:auto;margin:0 auto 12px;">
-          <p style="color:#7F8C8D;font-size:14px;margin-top:4px;">Accédez à votre espace santé</p>
+          <div style="display:grid;place-items:center;width:60px;height:60px;margin:0 auto 12px;
+                      border-radius:50%;background:#0B5345;color:white;font-size:22px;font-weight:700;
+                      letter-spacing:.5px;box-shadow:0 10px 24px rgba(11,83,69,.22);">
+            SC
+          </div>
+          <h1 style="margin:0;color:#1A5276;font-size:28px;font-weight:800;letter-spacing:-.5px;">
+            SteevaCare
+          </h1>
+          <p style="margin:2px 0 0;color:#95A5A6;font-size:12px;font-weight:600;">by QuamTechs</p>
+          <p style="color:#7F8C8D;font-size:14px;margin-top:10px;">Accédez à votre espace santé</p>
         </div>
 
         <!-- Formulaire -->
         <form [formGroup]="form" (ngSubmit)="onSubmit()">
 
           <!-- Email -->
-          <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
+          <mat-form-field appearance="outline" style="width:100%;" floatLabel="always" subscriptSizing="dynamic">
             <mat-label>Adresse email</mat-label>
             <input matInput formControlName="email" type="email"
                    placeholder="vous@exemple.cm" autocomplete="email">
@@ -55,7 +60,7 @@ import { Subject, takeUntil } from 'rxjs';
           </mat-form-field>
 
           <!-- Mot de passe -->
-          <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;" floatLabel="always" subscriptSizing="dynamic">
+          <mat-form-field appearance="outline" style="width:100%;" floatLabel="always" subscriptSizing="dynamic">
             <mat-label>Mot de passe</mat-label>
             <input matInput formControlName="password"
                    [type]="showPassword ? 'text' : 'password'"
@@ -75,13 +80,19 @@ import { Subject, takeUntil } from 'rxjs';
             </mat-error>
           </mat-form-field>
 
+          <div *ngIf="errorMsg" style="background:#FADBD8;color:#922B21;padding:10px 14px;
+              border-radius:8px;font-size:13px;margin-top:8px;">
+            {{errorMsg}}
+          </div>
+
           <!-- Bouton connexion -->
           <button mat-raised-button type="submit"
-                  [disabled]="loginForm.invalid || loading"
+                  [disabled]="loginForm.invalid || loading || countdown > 0"
                   style="width:100%;margin-top:16px;padding:14px;font-size:16px;
                          font-weight:600;border-radius:10px;background:#1A5276;
                          color:white;">
-            <span *ngIf="!loading">Se connecter</span>
+            <span *ngIf="!loading && countdown === 0">Se connecter</span>
+            <span *ngIf="!loading && countdown > 0">Réessayer dans {{countdown}}s</span>
             <span *ngIf="loading" style="display:flex;align-items:center;
                                           justify-content:center;gap:8px;">
               <mat-progress-spinner diameter="20" mode="indeterminate"
@@ -135,6 +146,11 @@ import { Subject, takeUntil } from 'rxjs';
       animation: shake 0.42s ease-in-out both;
     }
 
+    .mat-mdc-form-field { margin-bottom: 16px; }
+    .mat-mdc-text-field-wrapper { border-radius: 10px !important; }
+    .mdc-notched-outline__leading { border-radius: 10px 0 0 10px !important; }
+    .mdc-notched-outline__trailing { border-radius: 0 10px 10px 0 !important; }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(18px) scale(0.98); }
       to { opacity: 1; transform: translateY(0) scale(1); }
@@ -152,11 +168,14 @@ export class LoginComponent implements OnDestroy {
   private fb          = inject(FormBuilder);
   private api         = inject(ApiService);
   private authService = inject(AuthService);
-  private notification = inject(NotificationService);
+  private countdownInterval: ReturnType<typeof setInterval> | null = null;
 
   loading      = false;
   showPassword = false;
-  loginError   = false;
+  hasError     = false;
+  errorMsg     = '';
+  failCount    = 0;
+  countdown    = 0;
   readonly isProduction = !isDevMode();
   readonly showDemoAccounts = !this.isProduction;
 
@@ -179,37 +198,87 @@ export class LoginComponent implements OnDestroy {
 
   fillDemo(demo: { email: string; password: string }) {
     this.form.setValue({ email: demo.email, password: demo.password });
+    this.errorMsg = '';
   }
 
   onSubmit(): void {
-    if (this.form.invalid || this.loading) return;
+    if (this.form.invalid || this.loading || this.countdown > 0) return;
     this.loading = true;
-    this.loginError = false;
+    this.hasError = false;
+    this.errorMsg = '';
 
     this.api.post<AuthResponse>('/api/auth/login', this.form.value)
       .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.loading = false;
+          this.failCount = 0;
+          this.clearCountdown();
           this.authService.login(res);
         },
         error: (err) => {
           this.loading = false;
-          this.loginError = true;
-          setTimeout(() => { this.loginError = false; }, 450);
-          const msg = err.error?.erreur ?? 'Email ou mot de passe incorrect';
-          this.notification.error(msg, 5000);
+          const msg = this.getErrorMessage(err, 'Email ou mot de passe incorrect');
+          this.errorMsg = msg;
+          this.triggerShake();
+          this.registerFailure();
         }
       });
+  }
+
+  private registerFailure(): void {
+    this.failCount += 1;
+    if (this.failCount >= 3) {
+      this.startCountdown(30);
+    }
+  }
+
+  private startCountdown(seconds: number): void {
+    this.clearCountdown();
+    this.countdown = seconds;
+    this.countdownInterval = setInterval(() => {
+      this.countdown -= 1;
+      if (this.countdown <= 0) {
+        this.clearCountdown();
+        this.failCount = 0;
+      }
+    }, 1000);
+  }
+
+  private clearCountdown(): void {
+    if (this.countdownInterval) {
+      clearInterval(this.countdownInterval);
+      this.countdownInterval = null;
+    }
+    this.countdown = 0;
+  }
+
+  private triggerShake(): void {
+    this.hasError = true;
+    setTimeout(() => { this.hasError = false; }, 450);
+  }
+
+  private getErrorMessage(err: any, fallback: string): string {
+    if (err?.status === 0) {
+      return 'Impossible de joindre le serveur SteevaCare. Vérifiez que le backend est démarré sur le port 8082.';
+    }
+
+    if (typeof err?.error === 'string') {
+      return err.error;
+    }
+
+    return err?.error?.erreur
+      ?? err?.error?.message
+      ?? err?.message
+      ?? fallback;
   }
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
   }
 
-
   ngOnDestroy(): void {
+    this.clearCountdown();
     this.destroy$.next();
     this.destroy$.complete();
   }
-
 }

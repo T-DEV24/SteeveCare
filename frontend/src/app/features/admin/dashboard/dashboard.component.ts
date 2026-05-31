@@ -51,6 +51,7 @@ interface StatCard {
   value: number;
   icon: string;
   color: string;
+  bg: string;
   sparkline: number[];
   trend: number;
 }
@@ -98,11 +99,11 @@ interface StatCard {
 
         <ng-container *ngIf="!loading">
           <section class="stats-grid">
-            <mat-card class="stat-card" *ngFor="let card of statsCards; trackBy: trackByItem">
+            <mat-card class="stat-card" *ngFor="let card of statsCards; trackBy: trackByItem" [style.background]="card.bg">
               <div class="stat-card__top">
                 <div class="stat-icon" [style.background]="card.color"><mat-icon>{{card.icon}}</mat-icon></div>
                 <div class="trend" [class.trend--down]="card.trend < 0">
-                  <mat-icon>{{card.trend >= 0 ? 'trending_up' : 'trending_down'}}</mat-icon>
+                  <span class="trend-arrow">{{card.trend >= 0 ? '↑' : '↓'}}</span>
                   {{abs(card.trend)}}%
                 </div>
               </div>
@@ -161,6 +162,31 @@ interface StatCard {
               </div>
             </mat-card>
           </section>
+
+          <mat-card class="recent-users-card activities-card">
+            <div class="section-title section-title--between">
+              <div>
+                <h2>Dernières activités</h2>
+                <p>Les 5 derniers comptes créés sur la plateforme.</p>
+              </div>
+              <a routerLink="/admin/users">Voir tous →</a>
+            </div>
+
+            <div *ngIf="recentActivities.length > 0; else emptyActivities" class="activities-list">
+              <a *ngFor="let user of recentActivities; trackBy: trackByItem"
+                 class="activity-item"
+                 [routerLink]="['/admin/users']"
+                 [queryParams]="{focus:user.id}">
+                <div class="avatar" [style.background]="getRoleColor(user.role)">{{user.nom | initials:user.prenom}}</div>
+                <div style="flex:1;min-width:0;">
+                  <strong>{{user.prenom}} {{user.nom}}</strong>
+                  <span>Compte {{user.role}} créé le {{formatDate(user.createdAt)}}</span>
+                </div>
+                <mat-icon>chevron_right</mat-icon>
+              </a>
+            </div>
+            <ng-template #emptyActivities><div class="empty-state">Aucune activité récente.</div></ng-template>
+          </mat-card>
 
           <mat-card class="recent-users-card">
             <div class="section-title section-title--between">
@@ -221,12 +247,18 @@ interface StatCard {
     .stat-icon { width:48px; height:48px; display:grid; place-items:center; border-radius:16px; color:white; }
     .trend { display:inline-flex; align-items:center; gap:4px; padding:5px 8px; border-radius:999px; color:#1E8449; background:#D5F5E3; font-weight:900; font-size:12px; }
     .trend--down { color:#C0392B; background:#FADBD8; }
-    .trend mat-icon { font-size:16px; width:16px; height:16px; }
+    .trend-arrow { font-size:16px; line-height:1; font-weight:900; }
     .stat-value { color:#173B52; font-size:34px; font-weight:900; }
     .stat-label { color:#7F8C8D; font-size:13px; font-weight:700; }
     .sparkline { width:100%; height:46px; margin-top:12px; }
     .dashboard-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:24px; margin-bottom:24px; }
     .alerts-card, .quick-actions-card, .recent-users-card { padding:24px; }
+    .activities-card { margin-bottom:24px; }
+    .activities-list { display:grid; gap:10px; }
+    .activity-item { display:flex; align-items:center; gap:12px; padding:12px; border-radius:16px; background:#F8FBFD; border:1px solid #E7EDF2; text-decoration:none; }
+    .activity-item strong { display:block; color:#173B52; }
+    .activity-item span { display:block; color:#7F8C8D; font-size:12px; margin-top:2px; }
+    .activity-item mat-icon { color:#7F8C8D; }
     .section-title { display:flex; align-items:flex-start; gap:12px; margin-bottom:18px; }
     .section-title mat-icon { color:#1A5276; }
     .section-title h2 { margin:0 0 4px; color:#173B52; font-size:19px; font-weight:900; }
@@ -256,7 +288,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   loading = true;
   statsCards: StatCard[] = [];
   recentUsers: RecentUser[] = [];
+  recentActivities: RecentUser[] = [];
   alerts: AlertSummary = { pendingAccounts: 0, unassignedAppointments: 0, expiredPrescriptions: 0 };
+  private latestStats: Stats | null = null;
+  private latestTrends: DashboardTrend[] = [];
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -271,30 +306,40 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.api.get<Stats>('/api/admin/stats').pipe(takeUntil(this.destroy$)).subscribe({
       next: (stats) => {
+        this.latestStats = stats;
         this.alerts = {
           pendingAccounts: stats.comptesPending ?? 0,
           unassignedAppointments: stats.appointmentsWithoutDoctor ?? 0,
           expiredPrescriptions: stats.expiredPrescriptions ?? 0
         };
-        this.buildCards(stats, []);
+        this.buildCards(stats, this.latestTrends);
         this.loading = false;
       },
       error: () => {
-        this.buildCards({ totalDoctors: 0, totalPatients: 0, totalAppointments: 0, totalPharmacies: 0 }, []);
+        this.latestStats = { totalDoctors: 0, totalPatients: 0, totalAppointments: 0, totalPharmacies: 0 };
+        this.buildCards(this.latestStats, this.latestTrends);
         this.loading = false;
       }
     });
 
     this.api.get<DashboardTrend[]>('/api/admin/dashboard/trends').pipe(takeUntil(this.destroy$)).subscribe({
-      next: (trends) => this.applyTrends(trends)
+      next: (trends) => { this.latestTrends = trends ?? []; this.applyTrends(this.latestTrends); }
     });
 
     this.api.get<AlertSummary>('/api/admin/alerts').pipe(takeUntil(this.destroy$)).subscribe({
       next: (alerts) => { this.alerts = { ...this.alerts, ...alerts }; }
     });
 
-    this.api.get<RecentUser[]>('/api/admin/users/recent', { size: 8 }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (users) => { this.recentUsers = users ?? []; },
+    this.api.get<RecentUser[] | { content?: RecentUser[]; items?: RecentUser[]; data?: RecentUser[] }>(
+      '/api/admin/users',
+      { page: 0, size: 5, sort: 'createdAt,desc' }
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (users) => { this.recentActivities = this.extractUsers(users).slice(0, 5); },
+      error: () => { this.recentActivities = []; }
+    });
+
+    this.api.get<RecentUser[] | { content?: RecentUser[]; items?: RecentUser[]; data?: RecentUser[] }>('/api/admin/users/recent', { size: 8 }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (users) => { this.recentUsers = this.extractUsers(users); },
       error: () => { this.recentUsers = []; }
     });
   }
@@ -322,25 +367,26 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   trackByItem(_: number, item: any): unknown { return item?.id ?? item?.key ?? item?.route ?? item?.label ?? item; }
 
+  private extractUsers(users: RecentUser[] | { content?: RecentUser[]; items?: RecentUser[]; data?: RecentUser[] }): RecentUser[] {
+    return Array.isArray(users) ? users : (users?.content ?? users?.items ?? users?.data ?? []);
+  }
+
   private buildCards(stats: Stats, trends: DashboardTrend[]): void {
     const trendFor = (key: string) => trends.find(t => t.key === key);
     const fallback = [4, 7, 5, 9, 8, 12, 14];
     this.statsCards = [
-      { key: 'doctors', label: 'Médecins', value: stats.totalDoctors, icon: 'medical_services', color: '#2980B9', sparkline: trendFor('doctors')?.values ?? fallback, trend: trendFor('doctors')?.percent ?? 12 },
-      { key: 'patients', label: 'Patients', value: stats.totalPatients, icon: 'groups', color: '#27AE60', sparkline: trendFor('patients')?.values ?? [9, 12, 11, 18, 20, 24, 28], trend: trendFor('patients')?.percent ?? 18 },
-      { key: 'appointments', label: 'RDV', value: stats.totalAppointments, icon: 'event_available', color: '#F39C12', sparkline: trendFor('appointments')?.values ?? [12, 10, 14, 13, 16, 20, 17], trend: trendFor('appointments')?.percent ?? -4 },
-      { key: 'pharmacies', label: 'Pharmacies', value: stats.totalPharmacies, icon: 'local_pharmacy', color: '#8E44AD', sparkline: trendFor('pharmacies')?.values ?? [2, 3, 3, 4, 5, 5, 7], trend: trendFor('pharmacies')?.percent ?? 9 }
+      { key: 'doctors', label: 'Médecins', value: stats.totalDoctors, icon: 'medical_services', color: '#2980B9', bg: '#D6EAF8', sparkline: trendFor('doctors')?.values ?? fallback, trend: trendFor('doctors')?.percent ?? 12 },
+      { key: 'patients', label: 'Patients', value: stats.totalPatients, icon: 'groups', color: '#27AE60', bg: '#D5F5E3', sparkline: trendFor('patients')?.values ?? [9, 12, 11, 18, 20, 24, 28], trend: trendFor('patients')?.percent ?? 18 },
+      { key: 'appointments', label: 'RDV', value: stats.totalAppointments, icon: 'event_available', color: '#F39C12', bg: '#FDEBD0', sparkline: trendFor('appointments')?.values ?? [12, 10, 14, 13, 16, 20, 17], trend: trendFor('appointments')?.percent ?? -4 },
+      { key: 'pharmacies', label: 'Pharmacies', value: stats.totalPharmacies, icon: 'local_pharmacy', color: '#8E44AD', bg: '#E8DAEF', sparkline: trendFor('pharmacies')?.values ?? [2, 3, 3, 4, 5, 5, 7], trend: trendFor('pharmacies')?.percent ?? 9 }
     ];
   }
 
   private applyTrends(trends: DashboardTrend[]): void {
-    const values: Stats = {
-      totalDoctors: this.statsCards.find(c => c.key === 'doctors')?.value ?? 0,
-      totalPatients: this.statsCards.find(c => c.key === 'patients')?.value ?? 0,
-      totalAppointments: this.statsCards.find(c => c.key === 'appointments')?.value ?? 0,
-      totalPharmacies: this.statsCards.find(c => c.key === 'pharmacies')?.value ?? 0
-    };
-    this.buildCards(values, trends);
+    if (!this.latestStats) {
+      return;
+    }
+    this.buildCards(this.latestStats, trends);
   }
 
   private normalizeSparkline(values: number[]): number[] {

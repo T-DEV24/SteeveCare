@@ -68,7 +68,7 @@ type ViewMode = 'grid' | 'list';
             <h1>Trouver un médecin</h1>
             <p>Filtrez par spécialité, ville, disponibilité et choisissez le praticien qui vous convient.</p>
           </div>
-          <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare">
+          <img src="assets/brand/steevacare-logo.png" alt="SteevaCare">
         </header>
 
         <mat-card class="filters-card">

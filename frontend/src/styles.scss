@@ -63,6 +63,38 @@ html, body {
 
 a { text-decoration: none; color: inherit; }
 
+a, button, .nav-item, mat-card { transition: all 0.2s ease; }
+
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:#F5F6FA; }
+::-webkit-scrollbar-thumb { background:#BDC3C7; border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:#7F8C8D; }
+
+mat-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+  transform: translateY(-2px);
+}
+
+button[mat-raised-button]:active { transform:scale(0.97); }
+button:disabled,
+button[disabled],
+.mat-mdc-button-disabled {
+  opacity:0.5 !important;
+  cursor:not-allowed !important;
+}
+
+.empty-state {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:64px 32px;
+  color:#BDC3C7;
+  gap:12px;
+}
+.empty-state mat-icon { font-size:64px; width:64px; height:64px; }
+.empty-state h3 { font-size:16px; color:#7F8C8D; font-weight:500; }
+
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 /* SIDEBAR PARTAGÃ‰E                                */
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -96,6 +128,7 @@ a { text-decoration: none; color: inherit; }
 .sidebar-nav { flex: 1; padding: 12px 0; }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -112,16 +145,26 @@ a { text-decoration: none; color: inherit; }
   mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
   &:hover {
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.15);
     color: white;
-    border-left-color: rgba(39,174,96,0.6);
+    transform: translateX(4px);
   }
 
   &.active {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.18);
     color: white;
     font-weight: 500;
-    border-left-color: #27AE60;
+  }
+
+  &.active::before {
+    content:'';
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:4px;
+    border-radius:0 4px 4px 0;
+    background:white;
   }
 }
 
@@ -164,6 +207,14 @@ mat-card {
 
 /* Force outline sur les mat-form-fields */
 .mat-mdc-form-field-outline { border-radius: 8px; }
+
+.mat-mdc-select-arrow { color: var(--text-secondary) !important; }
+.mat-mdc-form-field-infix { min-height: 48px; }
+.mat-mdc-select-panel { border-radius: 10px !important; box-shadow: 0 4px 24px rgba(0,0,0,0.12) !important; }
+.mat-mdc-option { font-size: 13px !important; min-height: 42px !important; }
+.mat-mdc-option.mdc-list-item--selected { background: rgba(27,110,79,0.08) !important; }
+.mat-mdc-select-arrow-wrapper { padding-right: 4px; }
+.mat-mdc-select-value { font-size: 13px; color: #2C3E50; }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 /* BADGES RÃ”LE                                     */
@@ -233,6 +284,12 @@ mat-card {
   background: #FADBD8; color: #922B21;
   padding: 3px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 600;
+  display: inline-block;
+}
+
+.badge-rdv-DISPENSED {
+  background:#D1F2EB; color:#0E6655; padding:3px 10px;
+  border-radius:20px; font-size:11px; font-weight:600;
   display: inline-block;
 }
 
@@ -535,6 +592,14 @@ select:focus-visible,
   }
 }
 
-.badge-rdv-DISPENSED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
 .badge-rdv-DELIVERED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
 .badge-rdv-PHARMACY_PENDING { background:#FDEBD0; color:#7E3B00; padding:4px 12px; border-radius:20px; font-weight:600; }
+
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+@keyframes fadeInUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+.typing-indicator span { display:inline-block; width:6px; height:6px;
+  border-radius:50%; background:#7F8C8D; margin:0 2px;
+  animation: typing 1.2s infinite; }
+.typing-indicator span:nth-child(2) { animation-delay:0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay:0.4s; }
+@keyframes typing { 0%,60%,100%{transform:none;opacity:0.4} 30%{transform:translateY(-4px);opacity:1} }
