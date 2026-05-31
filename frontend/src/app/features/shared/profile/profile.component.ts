@@ -91,7 +91,7 @@ export class ConfirmDisableAccountDialogComponent {
     <main class="profile-page">
       <section class="profile-hero">
         <div class="profile-hero__brand">
-          <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
+          <img src="assets/brand/steevacare-logo.png" alt="SteevaCare - Télémédecine pour l'Afrique">
         </div>
         <div>
           <p class="profile-kicker">Mon espace personnel</p>
