@@ -1,5 +1,5 @@
 // src/app/features/doctor/consultation/consultation.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -10,38 +10,31 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string; patientId: number;
   doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
   dateHeure: string; type: string; statut: string; motif: string;
 }
-interface Pharmacy { id: number; nom: string; prenom: string; }
+interface Pharmacy { id: number; nom: string; prenom?: string; }
 
 @Component({
   selector: 'app-consultation',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [InitialsPipe, DateFrPipe, SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule,
             MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#0B5345;">
-        <div class="sidebar-logo"><span class="logo-icon">🩺</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/doctor/dashboard"><mat-icon>dashboard</mat-icon> Tableau de bord</a>
-          <a class="nav-item" routerLink="/doctor/appointments"><mat-icon>calendar_today</mat-icon> Rendez-vous</a>
-          <a class="nav-item" routerLink="/doctor/messages"><mat-icon>chat</mat-icon> Messagerie</a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/consultation'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
 
@@ -59,14 +52,14 @@ interface Pharmacy { id: number; nom: string; prenom: string; }
               <div style="width:52px;height:52px;border-radius:14px;background:#0B5345;
                           display:flex;align-items:center;justify-content:center;
                           color:white;font-size:20px;font-weight:700;">
-                {{getInitials(appointment.patientNom, appointment.patientPrenom)}}
+                {{ appointment.patientNom | initials:appointment.patientPrenom }}
               </div>
               <div>
                 <div style="font-weight:700;font-size:17px;">
                   {{appointment.patientPrenom}} {{appointment.patientNom}}
                 </div>
                 <div style="font-size:12px;color:#7F8C8D;">
-                  📅 {{formatDateFr(appointment.dateHeure)}} —
+                  📅 {{ appointment.dateHeure | dateFr }} —
                   {{appointment.type === 'VIDEO' ? '📹 Vidéo' : '💬 Messagerie'}}
                 </div>
               </div>
@@ -160,7 +153,7 @@ interface Pharmacy { id: number; nom: string; prenom: string; }
                             style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;
                                    font-size:13px;font-family:inherit;outline:none;">
                       <option [value]="null">-- Choisir --</option>
-                      <option *ngFor="let p of pharmacies" [value]="p.id">
+                      <option *ngFor="let p of pharmacies; trackBy: trackByItem" [value]="p.id">
                         {{p.nom}}
                       </option>
                     </select>
@@ -195,12 +188,14 @@ interface Pharmacy { id: number; nom: string; prenom: string; }
     </div>
   `
 })
-export class ConsultationComponent implements OnInit {
+export class ConsultationComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+  private intervalId: any = null;
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private route    = inject(ActivatedRoute);
   private router   = inject(Router);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading     = true;
   saving      = false;
@@ -219,24 +214,25 @@ export class ConsultationComponent implements OnInit {
     if (!id) { this.router.navigate(['/doctor/dashboard']); return; }
 
     // Charger le RDV
-    this.api.get<Appointment[]>('/api/appointments/doctor/me').subscribe({
+    this.api.get<Appointment[]>('/api/appointments/doctor/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (rdvs) => {
         this.appointment = rdvs.find(r => r.id === +id) ?? null;
         this.loading = false;
         if (!this.appointment) {
-          this.snackBar.open('Rendez-vous introuvable', '✕', { duration: 3000 });
+          this.notification.warning('Rendez-vous introuvable', 3000);
           this.router.navigate(['/doctor/dashboard']);
         }
       },
       error: () => { this.loading = false; }
     });
 
-    // Charger les pharmacies
-    this.api.get<any[]>('/api/admin/users').subscribe({
-      next: (users) => {
-        this.pharmacies = users
-          .filter(u => u.role === 'PHARMACY' && u.status === 'ACTIVE')
-          .map(u => ({ id: u.id, nom: `${u.prenom} ${u.nom}` }));
+    // Charger uniquement les pharmacies actives via l'endpoint public dédié.
+    this.api.get<Pharmacy[]>('/api/pharmacies/active').pipe(takeUntil(this.destroy$)).subscribe({
+      next: (pharmacies) => {
+        this.pharmacies = pharmacies.map(p => ({
+          id: p.id,
+          nom: p.prenom ? `${p.prenom} ${p.nom}` : p.nom
+        }));
       }
     });
   }
@@ -253,7 +249,7 @@ export class ConsultationComponent implements OnInit {
       finAt: new Date().toISOString()
     };
 
-    this.api.post<any>('/api/consultations', consultationBody).subscribe({
+    this.api.post<any>('/api/consultations', consultationBody).pipe(takeUntil(this.destroy$)).subscribe({
       next: (consultation) => {
         // 2. Créer l'ordonnance si des médicaments sont renseignés
         if (this.medicaments.trim()) {
@@ -266,16 +262,15 @@ export class ConsultationComponent implements OnInit {
             transmiseAPharmacie: !!this.selectedPharmacyId
           };
           this.api.post(`/api/consultations/${consultation.id}/prescriptions`,
-            prescriptionBody).subscribe();
+            prescriptionBody).pipe(takeUntil(this.destroy$)).subscribe();
         }
 
         // 3. Marquer le RDV comme terminé
         this.api.patch(`/api/appointments/${this.appointment!.id}/status`,
-          { status: 'COMPLETED' }).subscribe({
+          { status: 'COMPLETED' }).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.saving = false;
-            this.snackBar.open('Consultation terminée ✅', '✕',
-              { duration: 4000, panelClass: ['snack-success'] });
+            this.notification.success('Consultation terminée ✅', 4000);
             this.router.navigate(['/doctor/dashboard']);
           },
           error: () => { this.saving = false; }
@@ -283,18 +278,21 @@ export class ConsultationComponent implements OnInit {
       },
       error: (err) => {
         this.saving = false;
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
       }
     });
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
   }
-  formatDateFr(d: string): string {
-    if (!d) return '';
-    const date = new Date(d);
-    const mois = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
-    return `${date.getDate()} ${mois[date.getMonth()]} à ${date.getHours().toString().padStart(2,'0')}h${date.getMinutes().toString().padStart(2,'0')}`;
+
+
+  ngOnDestroy(): void {
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.destroy$.next();
+    this.destroy$.complete();
   }
+
 }

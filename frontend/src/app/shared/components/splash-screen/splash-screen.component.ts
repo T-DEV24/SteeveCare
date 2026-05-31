@@ -1,5 +1,5 @@
 // src/app/shared/components/splash-screen/splash-screen.component.ts
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnDestroy, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { trigger, state, style, animate, transition, keyframes } from '@angular/animations';
 
@@ -113,7 +113,7 @@ import { trigger, state, style, animate, transition, keyframes } from '@angular/
 
       <!-- Points pulsants -->
       <div style="position:absolute;bottom:40px;display:flex;gap:8px;">
-        <div *ngFor="let d of [0,1,2]"
+        <div *ngFor="let d of [0,1,2]; trackBy: trackByItem"
              [style.animation-delay]="(d*200)+'ms'"
              style="width:6px;height:6px;border-radius:50%;
                     background:rgba(255,255,255,0.4);
@@ -129,11 +129,12 @@ import { trigger, state, style, animate, transition, keyframes } from '@angular/
     }
   `]
 })
-export class SplashScreenComponent implements OnInit {
+export class SplashScreenComponent implements OnInit, OnDestroy {
   @Output() splashDone = new EventEmitter<void>();
 
   splashState = 'visible';
   loadingText = 'Initialisation...';
+  private intervalId: any = null;
 
   private loadingMessages = [
     'Initialisation...',
@@ -144,12 +145,12 @@ export class SplashScreenComponent implements OnInit {
 
   ngOnInit(): void {
     let i = 0;
-    const interval = setInterval(() => {
+    this.intervalId = setInterval(() => {
       i++;
       if (i < this.loadingMessages.length) {
         this.loadingText = this.loadingMessages[i];
       } else {
-        clearInterval(interval);
+        clearInterval(this.intervalId);
       }
     }, 700);
 
@@ -159,4 +160,13 @@ export class SplashScreenComponent implements OnInit {
       setTimeout(() => this.splashDone.emit(), 650);
     }, 3000);
   }
+
+  ngOnDestroy(): void {
+    if (this.intervalId) clearInterval(this.intervalId);
+  }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }
