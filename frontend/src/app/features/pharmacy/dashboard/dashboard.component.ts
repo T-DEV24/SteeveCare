@@ -76,7 +76,7 @@ interface Prescription {
             <input #codeInput
                    [(ngModel)]="searchCode"
                    (keydown.enter)="searchByCode()"
-                   placeholder="Ex: SC-2024-A3F7C2B1"
+                   [placeholder]="'Ex: SC-' + currentYear + '-A3F7C2B1'"
                    style="flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:8px;
                           font-size:14px;font-family:monospace;outline:none;letter-spacing:1px;
                           border-color:#E8DAEF;">
@@ -257,6 +257,7 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
 
   @ViewChild('codeInput') codeInput?: ElementRef<HTMLInputElement>;
 
+  currentYear = new Date().getFullYear();
   loading       = true;
   searchLoading = false;
   deliverLoading= false;

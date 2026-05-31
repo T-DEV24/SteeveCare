@@ -231,7 +231,7 @@ interface StatCounter {
       </div>
 
       <div class="home-footer__copyright">
-        © 2025 QuamTechs. Tous droits réservés.
+        © {{currentYear}} QuamTechs. Tous droits réservés.
       </div>
     </footer>
   `,
@@ -1035,6 +1035,8 @@ interface StatCounter {
   `]
 })
 export class HomeComponent implements OnInit, AfterViewInit, OnDestroy {
+  currentYear = new Date().getFullYear();
+
   @ViewChild('statsSection') private statsSection?: ElementRef<HTMLElement>;
   @ViewChild('howItWorksSection') private howItWorksSection?: ElementRef<HTMLElement>;
 

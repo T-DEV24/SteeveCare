@@ -125,6 +125,8 @@ import { trigger, state, style, animate, transition, keyframes } from '@angular/
   `]
 })
 export class SplashScreenComponent implements OnInit, OnDestroy {
+  currentYear = new Date().getFullYear();
+
   @Output() splashDone = new EventEmitter<void>();
 
   splashState = 'visible';
