@@ -1,11 +1,12 @@
 // src/app/features/auth/register/register.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import {
   AbstractControl, FormBuilder, ReactiveFormsModule,
   ValidationErrors, ValidatorFn, Validators
 } from '@angular/forms';
+import { Subject, takeUntil } from 'rxjs';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -245,7 +246,8 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
     </div>
   `
 })
-export class RegisterComponent {
+export class RegisterComponent implements OnDestroy {
+  private destroy$ = new Subject<void>();
   private fb          = inject(FormBuilder);
   private api         = inject(ApiService);
   private authService = inject(AuthService);
@@ -317,7 +319,7 @@ export class RegisterComponent {
       sexe:      this.step2.get('sexe')?.value
     };
 
-    this.api.post<AuthResponse>('/api/auth/register', body).subscribe({
+    this.api.post<AuthResponse>('/api/auth/register', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.loading = false;
         this.notification.success('Compte créé avec succès ! Bienvenue 🎉', 3000);
@@ -333,6 +335,12 @@ export class RegisterComponent {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

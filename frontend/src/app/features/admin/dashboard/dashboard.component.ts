@@ -1,5 +1,5 @@
 // src/app/features/admin/dashboard/dashboard.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -11,6 +11,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Stats {
   totalPatients: number; totalDoctors: number; totalPharmacies: number;
@@ -144,7 +145,8 @@ interface RecentUser {
     </div>
   `
 })
-export class AdminDashboardComponent implements OnInit {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   authService = inject(AuthService);
   private api = inject(ApiService);
 
@@ -155,7 +157,7 @@ export class AdminDashboardComponent implements OnInit {
   recentUsers: RecentUser[] = [];
 
   ngOnInit(): void {
-    this.api.get<Stats>('/api/admin/stats').subscribe({
+    this.api.get<Stats>('/api/admin/stats').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.stats = data;
         this.statsCards = [
@@ -170,7 +172,7 @@ export class AdminDashboardComponent implements OnInit {
       error: () => { this.loading = false; }
     });
 
-    this.api.get<RecentUser[]>('/api/admin/users').subscribe({
+    this.api.get<RecentUser[]>('/api/admin/users').pipe(takeUntil(this.destroy$)).subscribe({
       next: (users) => {
         this.recentUsers = users
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -201,6 +203,12 @@ export class AdminDashboardComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

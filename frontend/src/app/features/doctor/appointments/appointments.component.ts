@@ -1,5 +1,5 @@
 // src/app/features/doctor/appointments/appointments.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +15,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string;
@@ -156,7 +157,8 @@ interface Appointment {
     </div>
   `
 })
-export class DoctorAppointmentsComponent implements OnInit {
+export class DoctorAppointmentsComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private notification = inject(NotificationService);
@@ -180,7 +182,7 @@ export class DoctorAppointmentsComponent implements OnInit {
 
   load(): void {
     this.loading = true;
-    this.api.get<Appointment[]>('/api/appointments/doctor/me').subscribe({
+    this.api.get<Appointment[]>('/api/appointments/doctor/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => { this.all = d; this.loading = false; },
       error: () => { this.loading = false; }
     });
@@ -192,7 +194,7 @@ export class DoctorAppointmentsComponent implements OnInit {
 
   updateStatus(rdv: Appointment, status: string): void {
     this.actionLoading = rdv.id;
-    this.api.patch(`/api/appointments/${rdv.id}/status`, { status }).subscribe({
+    this.api.patch(`/api/appointments/${rdv.id}/status`, { status }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notification.success('Statut mis à jour ✅', 3000);
         this.load(); this.actionLoading = null;
@@ -214,7 +216,7 @@ export class DoctorAppointmentsComponent implements OnInit {
     this.showReject = false;
     this.api.patch(`/api/appointments/${this.rdvToReject.id}/status`, {
       status: 'REJECTED', motifRejet: this.rejectMotif
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notification.warning('Rendez-vous refusé', 3000);
         this.load(); this.actionLoading = null;
@@ -238,6 +240,12 @@ export class DoctorAppointmentsComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

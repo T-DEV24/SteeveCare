@@ -1,5 +1,5 @@
 // src/app/features/admin/users/users.component.ts
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -19,6 +19,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface UserRow {
   id: number; email: string; nom: string; prenom: string;
@@ -229,7 +230,8 @@ interface UserRow {
     </div>
   `
 })
-export class UserManagementComponent implements OnInit {
+export class UserManagementComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth    = inject(AuthService);
   private api      = inject(ApiService);
   private notification = inject(NotificationService);
@@ -255,7 +257,7 @@ export class UserManagementComponent implements OnInit {
 
   loadUsers(): void {
     this.loading = true;
-    this.api.get<UserRow[]>('/api/admin/users').subscribe({
+    this.api.get<UserRow[]>('/api/admin/users').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.allUsers = data;
         this.dataSource.data = data;
@@ -282,7 +284,7 @@ export class UserManagementComponent implements OnInit {
 
   freeze(u: UserRow): void {
     this.actionLoading = u.id;
-    this.api.patch(`/api/admin/users/${u.id}/freeze`).subscribe({
+    this.api.patch(`/api/admin/users/${u.id}/freeze`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notification.warning(`Compte de ${u.prenom} ${u.nom} gelé ❄️`, 3000);
         this.loadUsers();
@@ -297,7 +299,7 @@ export class UserManagementComponent implements OnInit {
 
   unfreeze(u: UserRow): void {
     this.actionLoading = u.id;
-    this.api.patch(`/api/admin/users/${u.id}/unfreeze`).subscribe({
+    this.api.patch(`/api/admin/users/${u.id}/unfreeze`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notification.success(`Compte de ${u.prenom} ${u.nom} dégelé ▶️`, 3000);
         this.loadUsers();
@@ -317,7 +319,7 @@ export class UserManagementComponent implements OnInit {
     const u = this.userToDelete;
     this.userToDelete = null;
     this.actionLoading = u.id;
-    this.api.delete(`/api/admin/delete/${u.id}`).subscribe({
+    this.api.delete(`/api/admin/delete/${u.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.notification.success(`Compte supprimé définitivement`, 3000);
         this.loadUsers();
@@ -348,6 +350,12 @@ export class UserManagementComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

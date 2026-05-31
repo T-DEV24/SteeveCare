@@ -1,5 +1,5 @@
 // src/app/features/patient/dashboard/dashboard.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,6 +12,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Appointment {
   id: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
@@ -206,7 +207,8 @@ interface PrescriptionPreview {
     .pulse-fab { animation: fabPulse 1.8s infinite; }
   `]
 })
-export class PatientDashboardComponent implements OnInit {
+export class PatientDashboardComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth    = inject(AuthService);
   private api = inject(ApiService);
 
@@ -239,7 +241,7 @@ export class PatientDashboardComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.api.get<Appointment[]>('/api/appointments/patient/me').subscribe({
+    this.api.get<Appointment[]>('/api/appointments/patient/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.allAppointments = data;
         this.upcomingRdv = data
@@ -251,7 +253,7 @@ export class PatientDashboardComponent implements OnInit {
       error: () => { this.loadingRdv = false; }
     });
 
-    this.api.get<PrescriptionPreview[]>('/api/prescriptions/patient/me').subscribe({
+    this.api.get<PrescriptionPreview[]>('/api/prescriptions/patient/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.recentPrescriptions = data
           .sort((a, b) => new Date(b.createdAt ?? '').getTime() - new Date(a.createdAt ?? '').getTime())
@@ -296,6 +298,12 @@ export class PatientDashboardComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

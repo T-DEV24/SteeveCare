@@ -13,6 +13,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Prescription {
   id: number; medicaments: string; posologie: string; instructions: string;
@@ -249,6 +250,7 @@ interface Prescription {
   `]
 })
 export class PharmacyDashboardComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private notification = inject(NotificationService);
@@ -262,7 +264,7 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
   searchCode    = '';
   searchResult: Prescription | null = null;
   searchError   = '';
-  private pollingId: ReturnType<typeof setInterval> | null = null;
+  private intervalId: any = null;
 
   cols = ['date','patient','medicaments','code','statut'];
 
@@ -272,17 +274,19 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadPrescriptions();
-    this.pollingId = setInterval(() => this.loadPrescriptions(false), 30000);
+    this.intervalId = setInterval(() => this.loadPrescriptions(false), 30000);
     setTimeout(() => this.focusCodeInput(), 0);
   }
 
   ngOnDestroy(): void {
-    if (this.pollingId) clearInterval(this.pollingId);
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.intervalId) clearInterval(this.intervalId);
   }
 
   loadPrescriptions(showLoader = true): void {
     if (showLoader) this.loading = true;
-    this.api.get<Prescription[]>('/api/pharmacy/prescriptions').subscribe({
+    this.api.get<Prescription[]>('/api/pharmacy/prescriptions').pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => { this.prescriptions = d; this.loading = false; },
       error: () => { this.loading = false; }
     });
@@ -304,7 +308,7 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
     this.searchLoading = true;
     this.searchResult  = null;
     this.searchError   = '';
-    this.api.get<Prescription>(`/api/pharmacy/prescriptions/retrait/${this.searchCode.trim()}`).subscribe({
+    this.api.get<Prescription>(`/api/pharmacy/prescriptions/retrait/${this.searchCode.trim()}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (p) => { this.searchResult = p; this.searchLoading = false; },
       error: (err) => {
         this.searchLoading = false;
@@ -317,7 +321,7 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
 
   deliver(p: Prescription): void {
     this.deliverLoading = true;
-    this.api.patch<Prescription>(`/api/pharmacy/prescriptions/${p.id}/delivered`).subscribe({
+    this.api.patch<Prescription>(`/api/pharmacy/prescriptions/${p.id}/delivered`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (updated) => {
         this.deliverLoading = false;
         this.searchResult = updated;

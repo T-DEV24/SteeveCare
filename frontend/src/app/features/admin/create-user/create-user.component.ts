@@ -1,5 +1,5 @@
 // src/app/features/admin/create-user/create-user.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -16,6 +16,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-create-user',
@@ -271,7 +272,8 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
     </div>
   `
 })
-export class CreateUserComponent {
+export class CreateUserComponent implements OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private fb       = inject(FormBuilder);
@@ -369,7 +371,7 @@ export class CreateUserComponent {
     if (this.form.invalid || this.loading) return;
     this.loading = true;
 
-    this.api.post('/api/admin/users', this.form.value).subscribe({
+    this.api.post('/api/admin/users', this.form.value).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res: any) => {
         this.loading = false;
         this.notification.success(`✅ Compte ${res.prenom} ${res.nom} créé avec succès !`, 4000);
@@ -387,6 +389,12 @@ export class CreateUserComponent {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

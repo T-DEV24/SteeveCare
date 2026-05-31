@@ -1,5 +1,5 @@
 // src/app/features/patient/appointments/appointments.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Appointment {
   id: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
@@ -127,7 +128,8 @@ interface Appointment {
     </div>
   `
 })
-export class MyAppointmentsComponent implements OnInit {
+export class MyAppointmentsComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private notification = inject(NotificationService);
@@ -144,7 +146,7 @@ export class MyAppointmentsComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.api.get<Appointment[]>('/api/appointments/patient/me').subscribe({
+    this.api.get<Appointment[]>('/api/appointments/patient/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => { this.appointments = d; this.loading = false; },
       error: () => { this.loading = false; }
     });
@@ -156,7 +158,7 @@ export class MyAppointmentsComponent implements OnInit {
 
   cancel(rdv: Appointment): void {
     this.actionLoading = rdv.id;
-    this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CANCELLED' }).subscribe({
+    this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CANCELLED' }).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.appointments = this.appointments.filter(a => a.id !== rdv.id);
         this.notification.warning('Rendez-vous annulé', 3000);
@@ -181,6 +183,12 @@ export class MyAppointmentsComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

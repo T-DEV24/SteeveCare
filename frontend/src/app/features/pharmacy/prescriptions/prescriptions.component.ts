@@ -1,5 +1,5 @@
 // src/app/features/pharmacy/prescriptions/prescriptions.component.ts
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -15,6 +15,7 @@ import { NotificationService } from '../../../core/services/notification.service
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Prescription {
   id: number; medicaments: string; posologie: string; instructions: string;
@@ -154,7 +155,8 @@ interface Prescription {
     </div>
   `
 })
-export class PrescriptionsComponent implements OnInit {
+export class PrescriptionsComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private notification = inject(NotificationService);
@@ -169,7 +171,7 @@ export class PrescriptionsComponent implements OnInit {
   cols = ['date','patient','medicaments','code','statut','action'];
 
   ngOnInit(): void {
-    this.api.get<Prescription[]>('/api/pharmacy/prescriptions').subscribe({
+    this.api.get<Prescription[]>('/api/pharmacy/prescriptions').pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => { this.all = d; this.filtered = d; this.loading = false; },
       error: () => { this.loading = false; }
     });
@@ -192,7 +194,7 @@ export class PrescriptionsComponent implements OnInit {
   }
 
   deliver(p: Prescription): void {
-    this.api.patch<Prescription>(`/api/pharmacy/prescriptions/${p.id}/delivered`).subscribe({
+    this.api.patch<Prescription>(`/api/pharmacy/prescriptions/${p.id}/delivered`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (updated) => {
         const idx = this.all.findIndex(x => x.id === p.id);
         if (idx >= 0) this.all[idx] = updated;
@@ -225,4 +227,10 @@ export class PrescriptionsComponent implements OnInit {
     return new Date(d).toLocaleDateString('fr-FR',
       { day:'2-digit', month:'short', year:'numeric' });
   }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
 }

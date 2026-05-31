@@ -1,5 +1,5 @@
 // src/app/features/patient/doctors/doctors.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule, NgForm } from '@angular/forms';
@@ -17,6 +17,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Doctor {
   id: number; userId: number; nom: string; prenom: string; specialite: string;
@@ -250,7 +251,8 @@ interface Doctor {
     </div>
   `
 })
-export class DoctorSearchComponent implements OnInit {
+export class DoctorSearchComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private notification = inject(NotificationService);
@@ -296,7 +298,7 @@ export class DoctorSearchComponent implements OnInit {
     if (this.filterSpec)  params['specialite'] = this.filterSpec;
     if (this.filterVille) params['ville']       = this.filterVille;
 
-    this.api.get<Doctor[]>('/api/doctors/search', params).subscribe({
+    this.api.get<Doctor[]>('/api/doctors/search', params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => { this.allDoctors = data; this.filteredDoctors = data; this.loading = false; },
       error: () => { this.loading = false; }
     });
@@ -324,7 +326,7 @@ export class DoctorSearchComponent implements OnInit {
       type: this.rdvType,
       motif: this.rdvMotif
     };
-    this.api.post('/api/appointments', body).subscribe({
+    this.api.post('/api/appointments', body).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.rdvLoading = false;
         this.showDialog = false;
@@ -351,6 +353,12 @@ export class DoctorSearchComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

@@ -1,5 +1,5 @@
 // src/app/features/patient/medical-record/medical-record.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -11,9 +11,10 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { NotificationService } from '../../../core/services/notification.service';
-import { ApiService } from '../../../core/services/api.service';
+import { MedicalRecordService } from '../../../core/services/medical-record.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-medical-record',
@@ -70,9 +71,10 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
     </div>
   `
 })
-export class MedicalRecordComponent implements OnInit {
+export class MedicalRecordComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
-  private api      = inject(ApiService);
+  private medicalRecordService = inject(MedicalRecordService);
   private notification = inject(NotificationService);
 
   loading  = true;
@@ -89,7 +91,7 @@ export class MedicalRecordComponent implements OnInit {
   ];
 
   ngOnInit(): void {
-    this.api.get<any>('/api/patients/me/medical-record').subscribe({
+    this.medicalRecordService.getRecord().pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => {
         this.record['antecedentsFamiliaux'] = d.antecedentsFamiliaux ?? '';
         this.record['traitementEnCours']    = d.traitementEnCours ?? '';
@@ -102,7 +104,7 @@ export class MedicalRecordComponent implements OnInit {
 
   save(): void {
     this.saving = true;
-    this.api.patch('/api/patients/me/medical-record', this.record).subscribe({
+    this.medicalRecordService.updateRecord(this.record).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
         this.saving = false;
         this.editMode = false;
@@ -114,6 +116,12 @@ export class MedicalRecordComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

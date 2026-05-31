@@ -1,5 +1,5 @@
 // src/app/features/doctor/consultation/consultation.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,6 +17,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string; patientId: number;
@@ -187,7 +188,9 @@ interface Pharmacy { id: number; nom: string; prenom?: string; }
     </div>
   `
 })
-export class ConsultationComponent implements OnInit {
+export class ConsultationComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+  private intervalId: any = null;
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private route    = inject(ActivatedRoute);
@@ -211,7 +214,7 @@ export class ConsultationComponent implements OnInit {
     if (!id) { this.router.navigate(['/doctor/dashboard']); return; }
 
     // Charger le RDV
-    this.api.get<Appointment[]>('/api/appointments/doctor/me').subscribe({
+    this.api.get<Appointment[]>('/api/appointments/doctor/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (rdvs) => {
         this.appointment = rdvs.find(r => r.id === +id) ?? null;
         this.loading = false;
@@ -224,7 +227,7 @@ export class ConsultationComponent implements OnInit {
     });
 
     // Charger uniquement les pharmacies actives via l'endpoint public dédié.
-    this.api.get<Pharmacy[]>('/api/pharmacies/active').subscribe({
+    this.api.get<Pharmacy[]>('/api/pharmacies/active').pipe(takeUntil(this.destroy$)).subscribe({
       next: (pharmacies) => {
         this.pharmacies = pharmacies.map(p => ({
           id: p.id,
@@ -246,7 +249,7 @@ export class ConsultationComponent implements OnInit {
       finAt: new Date().toISOString()
     };
 
-    this.api.post<any>('/api/consultations', consultationBody).subscribe({
+    this.api.post<any>('/api/consultations', consultationBody).pipe(takeUntil(this.destroy$)).subscribe({
       next: (consultation) => {
         // 2. Créer l'ordonnance si des médicaments sont renseignés
         if (this.medicaments.trim()) {
@@ -259,12 +262,12 @@ export class ConsultationComponent implements OnInit {
             transmiseAPharmacie: !!this.selectedPharmacyId
           };
           this.api.post(`/api/consultations/${consultation.id}/prescriptions`,
-            prescriptionBody).subscribe();
+            prescriptionBody).pipe(takeUntil(this.destroy$)).subscribe();
         }
 
         // 3. Marquer le RDV comme terminé
         this.api.patch(`/api/appointments/${this.appointment!.id}/status`,
-          { status: 'COMPLETED' }).subscribe({
+          { status: 'COMPLETED' }).pipe(takeUntil(this.destroy$)).subscribe({
           next: () => {
             this.saving = false;
             this.notification.success('Consultation terminée ✅', 4000);
@@ -283,6 +286,13 @@ export class ConsultationComponent implements OnInit {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    if (this.intervalId) clearInterval(this.intervalId);
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }

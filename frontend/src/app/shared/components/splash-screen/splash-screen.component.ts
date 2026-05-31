@@ -1,5 +1,5 @@
 // src/app/shared/components/splash-screen/splash-screen.component.ts
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, OnDestroy, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { trigger, state, style, animate, transition, keyframes } from '@angular/animations';
 
@@ -129,11 +129,12 @@ import { trigger, state, style, animate, transition, keyframes } from '@angular/
     }
   `]
 })
-export class SplashScreenComponent implements OnInit {
+export class SplashScreenComponent implements OnInit, OnDestroy {
   @Output() splashDone = new EventEmitter<void>();
 
   splashState = 'visible';
   loadingText = 'Initialisation...';
+  private intervalId: any = null;
 
   private loadingMessages = [
     'Initialisation...',
@@ -144,12 +145,12 @@ export class SplashScreenComponent implements OnInit {
 
   ngOnInit(): void {
     let i = 0;
-    const interval = setInterval(() => {
+    this.intervalId = setInterval(() => {
       i++;
       if (i < this.loadingMessages.length) {
         this.loadingText = this.loadingMessages[i];
       } else {
-        clearInterval(interval);
+        clearInterval(this.intervalId);
       }
     }, 700);
 
@@ -158,6 +159,10 @@ export class SplashScreenComponent implements OnInit {
       this.splashState = 'hidden';
       setTimeout(() => this.splashDone.emit(), 650);
     }, 3000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.intervalId) clearInterval(this.intervalId);
   }
 
   trackByItem(_: number, item: any): unknown {

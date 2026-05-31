@@ -10,6 +10,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Contact { id: number; nom: string; prenom: string; specialite?: string; }
 interface Message { id: number; senderId: number; contenu: string; timestamp: string; isRead?: boolean; }
@@ -159,6 +160,7 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
   `]
 })
 export class MessagesComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth = inject(AuthService);
   private api = inject(ApiService);
 
@@ -171,8 +173,8 @@ export class MessagesComponent implements OnInit, OnDestroy {
   loadingMessages = false;
   sending = false;
   unreadCount = 0;
-  private messagePollingId: ReturnType<typeof setInterval> | null = null;
-  private unreadPollingId: ReturnType<typeof setInterval> | null = null;
+  private intervalId: any = null;
+  private unreadIntervalId: any = null;
   private userWasAtBottom = true;
 
   get sidebarBadges(): Record<string, number> {
@@ -186,17 +188,19 @@ export class MessagesComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadContacts();
     this.loadUnreadCount();
-    this.messagePollingId = setInterval(() => this.refreshMessages(), 5000);
-    this.unreadPollingId = setInterval(() => this.loadUnreadCount(), 5000);
+    this.intervalId = setInterval(() => this.refreshMessages(), 5000);
+    this.unreadIntervalId = setInterval(() => this.loadUnreadCount(), 5000);
   }
 
   ngOnDestroy(): void {
-    if (this.messagePollingId) clearInterval(this.messagePollingId);
-    if (this.unreadPollingId) clearInterval(this.unreadPollingId);
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.intervalId) clearInterval(this.intervalId);
+    if (this.unreadIntervalId) clearInterval(this.unreadIntervalId);
   }
 
   loadContacts(): void {
-    this.api.get<any[]>('/api/appointments/patient/me').subscribe({
+    this.api.get<any[]>('/api/appointments/patient/me').pipe(takeUntil(this.destroy$)).subscribe({
       next: (rdvs) => {
         const seen = new Set<number>();
         this.contacts = rdvs
@@ -219,7 +223,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
   }
 
   loadUnreadCount(): void {
-    this.api.get<number | { count: number }>('/api/messages/unread-count').subscribe({
+    this.api.get<number | { count: number }>('/api/messages/unread-count').pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => { this.unreadCount = typeof res === 'number' ? res : (res?.count ?? 0); },
       error: () => { this.unreadCount = 0; }
     });
@@ -235,7 +239,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
   refreshMessages(forceScroll = false): void {
     if (!this.selectedContact) return;
     const shouldKeepBottom = forceScroll || this.isAtBottom();
-    this.api.get<Message[]>(`/api/messages/${this.selectedContact.id}`).subscribe({
+    this.api.get<Message[]>(`/api/messages/${this.selectedContact.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (msgs) => {
         const hadNewMessage = msgs.length !== this.messages.length || msgs.some((m, i) => m.id !== this.messages[i]?.id);
         this.messages = msgs;
@@ -263,7 +267,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
     this.newMessage = '';
     this.sending = true;
     const shouldKeepBottom = this.isAtBottom();
-    this.api.post<Message>(`/api/messages/${this.selectedContact.id}`, { contenu }).subscribe({
+    this.api.post<Message>(`/api/messages/${this.selectedContact.id}`, { contenu }).pipe(takeUntil(this.destroy$)).subscribe({
       next: (m) => {
         if (!this.messages.some(existing => existing.id === m.id)) this.messages.push(m);
         if (shouldKeepBottom || m.senderId === this.auth.userId) this.scrollToBottom();

@@ -1,5 +1,5 @@
 // src/app/features/auth/login/login.component.ts
-import { Component, inject, isDevMode } from '@angular/core';
+import { Component, OnDestroy, inject, isDevMode } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -12,6 +12,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService, AuthResponse } from '../../../core/services/auth.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -145,7 +146,8 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
     }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnDestroy {
+  private destroy$ = new Subject<void>();
   private fb          = inject(FormBuilder);
   private api         = inject(ApiService);
   private authService = inject(AuthService);
@@ -184,7 +186,7 @@ export class LoginComponent {
     this.loginError = false;
 
     this.api.post<AuthResponse>('/api/auth/login', this.form.value)
-      .subscribe({
+      .pipe(takeUntil(this.destroy$)).subscribe({
         next: (res) => {
           this.loading = false;
           this.authService.login(res);
@@ -201,6 +203,12 @@ export class LoginComponent {
 
   trackByItem(_: number, item: any): unknown {
     return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
 }
