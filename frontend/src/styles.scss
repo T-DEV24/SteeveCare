@@ -165,6 +165,9 @@ mat-card {
 /* Force outline sur les mat-form-fields */
 .mat-mdc-form-field-outline { border-radius: 8px; }
 
+.mat-mdc-select-arrow { color: var(--text-secondary) !important; }
+.mat-mdc-form-field-infix { min-height: 48px; }
+
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 /* BADGES RÃ”LE                                     */
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -233,6 +236,12 @@ mat-card {
   background: #FADBD8; color: #922B21;
   padding: 3px 10px; border-radius: 20px;
   font-size: 11px; font-weight: 600;
+  display: inline-block;
+}
+
+.badge-rdv-DISPENSED {
+  background:#D1F2EB; color:#0E6655; padding:3px 10px;
+  border-radius:20px; font-size:11px; font-weight:600;
   display: inline-block;
 }
 
@@ -535,6 +544,5 @@ select:focus-visible,
   }
 }
 
-.badge-rdv-DISPENSED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
 .badge-rdv-DELIVERED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
 .badge-rdv-PHARMACY_PENDING { background:#FDEBD0; color:#7E3B00; padding:4px 12px; border-radius:20px; font-weight:600; }

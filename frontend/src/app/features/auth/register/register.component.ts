@@ -42,7 +42,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
 
         <!-- Logo -->
         <div style="text-align:center;margin-bottom:28px;">
-          <img src="assets/brand/steevacare-logo.svg"
+          <img src="assets/brand/steevacare-logo.png"
                alt="SteevaCare - Télémédecine pour l'Afrique"
                style="display:block;width:190px;max-width:78%;height:auto;margin:0 auto 12px;">
           <h1 style="font-size:22px;font-weight:700;color:#1A5276;margin:0;">
@@ -329,10 +329,24 @@ export class RegisterComponent implements OnDestroy {
       },
       error: (err) => {
         this.loading = false;
-        const msg = err.error?.erreur ?? 'Erreur lors de la création du compte';
-        this.notification.error(msg, 5000);
+        this.notification.error(this.getErrorMessage(err, 'Erreur lors de la création du compte'), 5000);
       }
     });
+  }
+
+  private getErrorMessage(err: any, fallback: string): string {
+    if (err?.status === 0) {
+      return 'Impossible de joindre le serveur SteevaCare. Vérifiez que le backend est démarré sur le port 8082.';
+    }
+
+    if (typeof err?.error === 'string') {
+      return err.error;
+    }
+
+    return err?.error?.erreur
+      ?? err?.error?.message
+      ?? err?.message
+      ?? fallback;
   }
 
   trackByItem(_: number, item: any): unknown {
