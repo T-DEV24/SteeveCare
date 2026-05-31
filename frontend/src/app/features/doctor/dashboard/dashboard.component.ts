@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string;
@@ -20,29 +21,11 @@ interface Appointment {
 @Component({
   selector: 'app-doctor-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#0B5345;">
-        <div class="sidebar-logo"><span class="logo-icon">🩺</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item active" routerLink="/doctor/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item" routerLink="/doctor/appointments">
-            <mat-icon>calendar_today</mat-icon> Rendez-vous
-          </a>
-          <a class="nav-item" routerLink="/doctor/messages">
-            <mat-icon>chat</mat-icon> Messagerie
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/dashboard'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -225,7 +208,7 @@ export class DoctorDashboardComponent implements OnInit {
   private api      = inject(ApiService);
   private snackBar = inject(MatSnackBar);
 
-  loading   = true;        // ← CORRECTION : loading ajouté
+  loading   = true;
   all: Appointment[] = [];
   actionLoading: number | null = null;
   showRejectDialog = false;
@@ -242,7 +225,10 @@ export class DoctorDashboardComponent implements OnInit {
     this.loading = true;
     this.api.get<Appointment[]>('/api/appointments/doctor/me').subscribe({
       next: (d) => { this.all = d; this.loading = false; },
-      error: () => { this.loading = false; }   // ← CORRECTION : gestion erreur
+      error: () => {
+        this.snackBar.open('Impossible de charger les rendez-vous', '✕', { duration: 4000 });
+        this.loading = false;
+      }
     });
   }
 

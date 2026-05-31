@@ -1,5 +1,5 @@
 // src/app/features/admin/create-user/create-user.component.ts
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -9,213 +9,260 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatStepperModule } from '@angular/material/stepper';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 @Component({
   selector: 'app-create-user',
   standalone: true,
   imports: [
+    SidebarComponent,
     CommonModule, RouterModule, ReactiveFormsModule,
     MatIconModule, MatButtonModule, MatCardModule,
-    MatFormFieldModule, MatInputModule, MatSelectModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatStepperModule,
     MatProgressSpinnerModule, MatSnackBarModule
   ],
   template: `
     <div style="display:flex;min-height:100vh;">
+      <app-sidebar [role]="'admin'" [activeRoute]="'/admin/create-user'"></app-sidebar>
 
-      <!-- SIDEBAR -->
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/admin/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item" routerLink="/admin/users">
-            <mat-icon>people</mat-icon> Utilisateurs
-          </a>
-          <a class="nav-item active" routerLink="/admin/create-user">
-            <mat-icon>person_add</mat-icon> Créer un compte
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
-
-      <!-- CONTENU -->
       <main class="main-content" style="flex:1;">
         <div class="page-header">
           <h1>Créer un compte utilisateur</h1>
         </div>
 
-        <mat-card style="max-width:720px;padding:32px;">
+        <mat-card style="max-width:820px;padding:32px;">
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
+            <mat-stepper #stepper
+                         [selectedIndex]="selectedIndex"
+                         animationDuration="300ms"
+                         labelPosition="bottom">
 
-            <!-- Section 1 : Type de compte -->
-            <div class="form-section">
-              <h3>Type de compte</h3>
-              <mat-form-field appearance="outline" style="width:100%;">
-                <mat-label>Rôle</mat-label>
-                <mat-select formControlName="role" (selectionChange)="onRoleChange($event.value)">
-                  <mat-option *ngFor="let r of availableRoles" [value]="r.value">
-                    <mat-icon style="font-size:16px;vertical-align:middle;margin-right:6px;">
-                      {{r.icon}}
-                    </mat-icon>
-                    {{r.label}}
-                  </mat-option>
-                </mat-select>
-                <mat-error>Le rôle est obligatoire</mat-error>
-              </mat-form-field>
-            </div>
+              <!-- Type -->
+              <mat-step [completed]="isTypeStepValid">
+                <ng-template matStepLabel>Type</ng-template>
+                <div class="form-section" style="padding-top:20px;">
+                  <h3>Type de compte</h3>
+                  <mat-form-field appearance="outline" floatLabel="always"
+                                  subscriptSizing="dynamic" style="width:100%;">
+                    <mat-label>Rôle</mat-label>
+                    <mat-select formControlName="role" (selectionChange)="onRoleChange($event.value)">
+                      <mat-option *ngFor="let r of availableRoles" [value]="r.value">
+                        <mat-icon style="font-size:16px;vertical-align:middle;margin-right:6px;">
+                          {{r.icon}}
+                        </mat-icon>
+                        {{r.label}}
+                      </mat-option>
+                    </mat-select>
+                    <mat-error>Le rôle est obligatoire</mat-error>
+                  </mat-form-field>
+                </div>
 
-            <!-- Section 2 : Identifiants -->
-            <div class="form-section">
-              <h3>Identifiants de connexion</h3>
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
-                <mat-label>Adresse email</mat-label>
-                <input matInput formControlName="email" type="email">
-                <mat-icon matSuffix style="color:#7F8C8D;">email</mat-icon>
-                <mat-error *ngIf="form.get('email')?.hasError('required')">Obligatoire</mat-error>
-                <mat-error *ngIf="form.get('email')?.hasError('email')">Email invalide</mat-error>
-              </mat-form-field>
+                <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+                  <button mat-raised-button type="button"
+                          [disabled]="!isTypeStepValid"
+                          (click)="goToStep(1)"
+                          style="background:#1A5276;color:white;border-radius:8px;">
+                    Suivant <mat-icon>arrow_forward</mat-icon>
+                  </button>
+                </div>
+              </mat-step>
 
-              <mat-form-field appearance="outline" style="width:100%;">
-                <mat-label>Mot de passe temporaire</mat-label>
-                <input matInput formControlName="password"
-                       [type]="showPwd ? 'text' : 'password'">
-                <button mat-icon-button matSuffix type="button"
-                        (click)="showPwd=!showPwd">
-                  <mat-icon style="color:#7F8C8D;">
-                    {{showPwd?'visibility_off':'visibility'}}
-                  </mat-icon>
-                </button>
-                <mat-error>Minimum 8 caractères</mat-error>
-              </mat-form-field>
-            </div>
+              <!-- Identifiants -->
+              <mat-step [completed]="isCredentialsStepValid">
+                <ng-template matStepLabel>Identifiants</ng-template>
+                <div class="form-section" style="padding-top:20px;">
+                  <h3>Identifiants de connexion</h3>
+                  <mat-form-field appearance="outline" floatLabel="always"
+                                  subscriptSizing="dynamic" style="width:100%;margin-bottom:4px;">
+                    <mat-label>Adresse email</mat-label>
+                    <input matInput formControlName="email" type="email" placeholder="utilisateur@steevacare.cm">
+                    <mat-icon matSuffix style="color:#7F8C8D;">email</mat-icon>
+                    <mat-error *ngIf="form.get('email')?.hasError('required')">Obligatoire</mat-error>
+                    <mat-error *ngIf="form.get('email')?.hasError('email')">Email invalide</mat-error>
+                  </mat-form-field>
 
-            <!-- Section 3 : Informations personnelles -->
-            <div class="form-section">
-              <h3>Informations personnelles</h3>
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Nom</mat-label>
-                  <input matInput formControlName="nom">
-                  <mat-error>Obligatoire</mat-error>
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>Prénom</mat-label>
-                  <input matInput formControlName="prenom">
-                  <mat-error>Obligatoire</mat-error>
-                </mat-form-field>
-              </div>
-              <mat-form-field appearance="outline" style="width:100%;">
-                <mat-label>Téléphone</mat-label>
-                <input matInput formControlName="telephone" placeholder="6XXXXXXXX">
-                <mat-icon matSuffix style="color:#7F8C8D;">phone</mat-icon>
-              </mat-form-field>
-            </div>
+                  <mat-form-field appearance="outline" floatLabel="always"
+                                  subscriptSizing="dynamic" style="width:100%;">
+                    <mat-label>Mot de passe temporaire</mat-label>
+                    <input matInput formControlName="password"
+                           [type]="showPwd ? 'text' : 'password'"
+                           placeholder="Minimum 8 caractères">
+                    <button mat-icon-button matSuffix type="button"
+                            (click)="showPwd=!showPwd">
+                      <mat-icon style="color:#7F8C8D;">
+                        {{showPwd?'visibility_off':'visibility'}}
+                      </mat-icon>
+                    </button>
+                    <mat-error>Minimum 8 caractères</mat-error>
+                  </mat-form-field>
+                </div>
 
-            <!-- Section 4 : Profil Médecin -->
-            <div *ngIf="selectedRole === 'DOCTOR'" class="form-section"
-                 style="border:1px solid #D6EAF8;border-radius:10px;
-                        padding:20px;background:#EBF5FB;">
-              <h3 style="color:#1A5276;">🩺 Profil Médecin</h3>
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
-                <mat-label>Spécialité *</mat-label>
-                <mat-select formControlName="specialite">
-                  <mat-option *ngFor="let s of specialites" [value]="s">{{s}}</mat-option>
-                </mat-select>
-                <mat-error>La spécialité est obligatoire</mat-error>
-              </mat-form-field>
+                <div style="display:flex;justify-content:space-between;margin-top:16px;">
+                  <button mat-stroked-button type="button" (click)="goToStep(0)" style="border-radius:8px;">
+                    <mat-icon>arrow_back</mat-icon> Retour
+                  </button>
+                  <button mat-raised-button type="button"
+                          [disabled]="!isCredentialsStepValid"
+                          (click)="goToStep(2)"
+                          style="background:#1A5276;color:white;border-radius:8px;">
+                    Suivant <mat-icon>arrow_forward</mat-icon>
+                  </button>
+                </div>
+              </mat-step>
 
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Numéro d'ordre</mat-label>
-                  <input matInput formControlName="numeroOrdre" placeholder="CM-SPEC-0001">
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>Tarif (FCFA)</mat-label>
-                  <input matInput formControlName="tarif" type="number" min="0">
-                  <span matSuffix style="color:#7F8C8D;padding-right:8px;">FCFA</span>
-                </mat-form-field>
-              </div>
+              <!-- Infos -->
+              <mat-step [completed]="isInfoStepValid">
+                <ng-template matStepLabel>Infos</ng-template>
+                <div class="form-section" style="padding-top:20px;">
+                  <h3>Informations personnelles</h3>
+                  <div class="form-row">
+                    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                      <mat-label>Nom</mat-label>
+                      <input matInput formControlName="nom" placeholder="Nom">
+                      <mat-error>Obligatoire</mat-error>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                      <mat-label>Prénom</mat-label>
+                      <input matInput formControlName="prenom" placeholder="Prénom">
+                      <mat-error>Obligatoire</mat-error>
+                    </mat-form-field>
+                  </div>
+                  <mat-form-field appearance="outline" floatLabel="always"
+                                  subscriptSizing="dynamic" style="width:100%;">
+                    <mat-label>Téléphone</mat-label>
+                    <input matInput formControlName="telephone" placeholder="6XXXXXXXX">
+                    <mat-icon matSuffix style="color:#7F8C8D;">phone</mat-icon>
+                  </mat-form-field>
+                </div>
 
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Années d'expérience</mat-label>
-                  <input matInput formControlName="anneesExperience" type="number" min="0">
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>Ville d'exercice</mat-label>
-                  <mat-select formControlName="villeMedecin">
-                    <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-              </div>
+                <div style="display:flex;justify-content:space-between;margin-top:16px;">
+                  <button mat-stroked-button type="button" (click)="goToStep(1)" style="border-radius:8px;">
+                    <mat-icon>arrow_back</mat-icon> Retour
+                  </button>
+                  <button mat-raised-button type="button"
+                          [disabled]="!isInfoStepValid"
+                          (click)="goToStep(3)"
+                          style="background:#1A5276;color:white;border-radius:8px;">
+                    Suivant <mat-icon>arrow_forward</mat-icon>
+                  </button>
+                </div>
+              </mat-step>
 
-              <mat-form-field appearance="outline" style="width:100%;">
-                <mat-label>Biographie (max 500 caractères)</mat-label>
-                <textarea matInput formControlName="biographie" rows="3"
-                          maxlength="500"></textarea>
-                <mat-hint align="end">
-                  {{form.get('biographie')?.value?.length ?? 0}}/500
-                </mat-hint>
-              </mat-form-field>
-            </div>
+              <!-- Profil -->
+              <mat-step [completed]="isProfileStepValid">
+                <ng-template matStepLabel>Profil</ng-template>
+                <div style="padding-top:20px;">
+                  <div *ngIf="selectedRole === 'DOCTOR'" class="form-section"
+                       style="border:1px solid #D6EAF8;border-radius:10px;
+                              padding:20px;background:#EBF5FB;">
+                    <h3 style="color:#1A5276;">🩺 Profil Médecin</h3>
+                    <mat-form-field appearance="outline" floatLabel="always"
+                                    subscriptSizing="dynamic" style="width:100%;margin-bottom:4px;">
+                      <mat-label>Spécialité *</mat-label>
+                      <mat-select formControlName="specialite">
+                        <mat-option *ngFor="let s of specialites" [value]="s">{{s}}</mat-option>
+                      </mat-select>
+                      <mat-error>La spécialité est obligatoire</mat-error>
+                    </mat-form-field>
 
-            <!-- Section 5 : Profil Pharmacie -->
-            <div *ngIf="selectedRole === 'PHARMACY'" class="form-section"
-                 style="border:1px solid #E8DAEF;border-radius:10px;
-                        padding:20px;background:#F5EEF8;">
-              <h3 style="color:#6C3483;">💊 Profil Pharmacie</h3>
+                    <div class="form-row">
+                      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                        <mat-label>Numéro d'ordre</mat-label>
+                        <input matInput formControlName="numeroOrdre" placeholder="ONMC-XXXX">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                        <mat-label>Tarif consultation</mat-label>
+                        <input matInput type="number" formControlName="tarif" placeholder="15000">
+                        <span matSuffix>FCFA</span>
+                      </mat-form-field>
+                    </div>
 
-              <mat-form-field appearance="outline" style="width:100%;margin-bottom:4px;">
-                <mat-label>Nom de la pharmacie *</mat-label>
-                <input matInput formControlName="nomPharmacie">
-                <mat-error>Obligatoire</mat-error>
-              </mat-form-field>
+                    <div class="form-row">
+                      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                        <mat-label>Années d'expérience</mat-label>
+                        <input matInput type="number" formControlName="anneesExperience" placeholder="5">
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                        <mat-label>Ville</mat-label>
+                        <mat-select formControlName="villeMedecin">
+                          <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
 
-              <div class="form-row">
-                <mat-form-field appearance="outline">
-                  <mat-label>Ville</mat-label>
-                  <mat-select formControlName="villePharmacie">
-                    <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
-                  </mat-select>
-                </mat-form-field>
-                <mat-form-field appearance="outline">
-                  <mat-label>N° Autorisation MINSANTE</mat-label>
-                  <input matInput formControlName="numeroAutorisation">
-                </mat-form-field>
-              </div>
+                    <mat-form-field appearance="outline" floatLabel="always"
+                                    subscriptSizing="dynamic" style="width:100%;">
+                      <mat-label>Biographie</mat-label>
+                      <textarea matInput formControlName="biographie" rows="3" maxlength="500"
+                                placeholder="Présentation courte du médecin"></textarea>
+                      <mat-hint align="end">
+                        {{form.get('biographie')?.value?.length ?? 0}}/500
+                      </mat-hint>
+                    </mat-form-field>
+                  </div>
 
-              <mat-form-field appearance="outline" style="width:100%;">
-                <mat-label>Adresse complète</mat-label>
-                <input matInput formControlName="adressePharmacie">
-              </mat-form-field>
-            </div>
+                  <div *ngIf="selectedRole === 'PHARMACY'" class="form-section"
+                       style="border:1px solid #E8DAEF;border-radius:10px;
+                              padding:20px;background:#F5EEF8;">
+                    <h3 style="color:#6C3483;">💊 Profil Pharmacie</h3>
 
-            <!-- Bouton Créer -->
-            <button mat-raised-button type="submit"
-                    [disabled]="form.invalid || loading"
-                    style="width:100%;padding:14px;font-size:15px;font-weight:600;
-                           border-radius:10px;background:#1A5276;color:white;
-                           margin-top:8px;">
-              <span *ngIf="!loading" style="display:flex;align-items:center;
-                                             justify-content:center;gap:8px;">
-                <mat-icon>person_add</mat-icon> Créer le compte
-              </span>
-              <span *ngIf="loading" style="display:flex;align-items:center;
-                                            justify-content:center;gap:8px;">
-                <mat-progress-spinner diameter="20" mode="indeterminate"
-                                      color="accent"></mat-progress-spinner>
-                Création en cours...
-              </span>
-            </button>
+                    <mat-form-field appearance="outline" floatLabel="always"
+                                    subscriptSizing="dynamic" style="width:100%;margin-bottom:4px;">
+                      <mat-label>Nom de la pharmacie *</mat-label>
+                      <input matInput formControlName="nomPharmacie" placeholder="Pharmacie Centrale">
+                      <mat-error>Obligatoire</mat-error>
+                    </mat-form-field>
+
+                    <div class="form-row">
+                      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                        <mat-label>Ville</mat-label>
+                        <mat-select formControlName="villePharmacie">
+                          <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
+                        </mat-select>
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
+                        <mat-label>N° Autorisation MINSANTE</mat-label>
+                        <input matInput formControlName="numeroAutorisation" placeholder="MINSANTE-XXXX">
+                      </mat-form-field>
+                    </div>
+
+                    <mat-form-field appearance="outline" floatLabel="always"
+                                    subscriptSizing="dynamic" style="width:100%;">
+                      <mat-label>Adresse complète</mat-label>
+                      <input matInput formControlName="adressePharmacie" placeholder="Quartier, rue, repère">
+                    </mat-form-field>
+                  </div>
+
+                  <div *ngIf="selectedRole !== 'DOCTOR' && selectedRole !== 'PHARMACY'"
+                       style="background:#F5F6FA;border-radius:10px;padding:20px;color:#7F8C8D;">
+                    Aucun profil métier complémentaire n'est requis pour ce rôle.
+                  </div>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;margin-top:20px;">
+                  <button mat-stroked-button type="button" (click)="goToStep(2)" style="border-radius:8px;">
+                    <mat-icon>arrow_back</mat-icon> Retour
+                  </button>
+                  <button mat-raised-button type="submit"
+                          [disabled]="form.invalid || loading"
+                          style="border-radius:10px;background:#1A5276;color:white;padding:0 24px;">
+                    <span *ngIf="!loading" style="display:flex;align-items:center;gap:8px;">
+                      <mat-icon>person_add</mat-icon> Créer le compte
+                    </span>
+                    <span *ngIf="loading" style="display:flex;align-items:center;gap:8px;">
+                      <mat-progress-spinner diameter="20" mode="indeterminate"
+                                            color="accent"></mat-progress-spinner>
+                      Création en cours...
+                    </span>
+                  </button>
+                </div>
+              </mat-step>
+            </mat-stepper>
           </form>
         </mat-card>
       </main>
@@ -231,6 +278,7 @@ export class CreateUserComponent {
   loading      = false;
   showPwd      = false;
   selectedRole = '';
+  selectedIndex = 0;
 
   villes = ['Yaoundé','Douala','Bafoussam','Garoua','Bamenda',
              'Maroua','Ngaoundéré','Bertoua','Ebolowa','Kribi'];
@@ -260,24 +308,43 @@ export class CreateUserComponent {
     nom:               ['', Validators.required],
     prenom:            ['', Validators.required],
     telephone:         [''],
-    // Doctor
     specialite:        [''],
     numeroOrdre:       [''],
     tarif:             [null as number | null],
     anneesExperience:  [null as number | null],
     villeMedecin:      [''],
     biographie:        [''],
-    // Pharmacy
     nomPharmacie:      [''],
     villePharmacie:    [''],
     numeroAutorisation:[''],
     adressePharmacie:  [''],
   });
 
+  get isTypeStepValid(): boolean {
+    return this.form.get('role')?.valid ?? false;
+  }
+
+  get isCredentialsStepValid(): boolean {
+    return !!this.form.get('email')?.valid && !!this.form.get('password')?.valid;
+  }
+
+  get isInfoStepValid(): boolean {
+    return !!this.form.get('nom')?.valid && !!this.form.get('prenom')?.valid;
+  }
+
+  get isProfileStepValid(): boolean {
+    if (this.selectedRole === 'DOCTOR') return this.form.get('specialite')?.valid ?? false;
+    if (this.selectedRole === 'PHARMACY') return this.form.get('nomPharmacie')?.valid ?? false;
+    return this.isTypeStepValid;
+  }
+
+  goToStep(index: number): void {
+    this.selectedIndex = index;
+  }
+
   onRoleChange(role: string): void {
     this.selectedRole = role;
 
-    // Réinitialiser les validateurs dynamiques
     const doctorFields = ['specialite'];
     const pharmacyFields = ['nomPharmacie'];
 
@@ -309,6 +376,7 @@ export class CreateUserComponent {
         );
         this.form.reset();
         this.selectedRole = '';
+        this.selectedIndex = 0;
       },
       error: (err) => {
         this.loading = false;

@@ -1,10 +1,9 @@
 // src/app/core/interceptors/jwt.interceptor.ts
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { MatSnackBar } from '@angular/material/snack-bar';
 
 /** Routes publiques qui ne nécessitent pas de token */
 const PUBLIC_PATHS = [
@@ -15,15 +14,20 @@ const PUBLIC_PATHS = [
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
-  const router      = inject(Router);
+  const router = inject(Router);
 
   const isPublic = PUBLIC_PATHS.some(p => req.url.includes(p))
     || req.url.match(/\/api\/doctors\/\d+$/) !== null;
 
-  // Injecter le token sur les routes protégées
   if (!isPublic) {
     const token = authService.token();
     if (token) {
+      if (authService.isTokenExpired(token)) {
+        authService.logout();
+        router.navigate(['/auth/login']);
+        return throwError(() => new Error('JWT expiré'));
+      }
+
       req = req.clone({
         setHeaders: { Authorization: `Bearer ${token}` }
       });
@@ -32,11 +36,11 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Vérification du statut du compte
       if (error.status === 401 && !isPublic) {
         authService.logout();
         router.navigate(['/auth/login']);
       }
+
       if (error.status === 403) {
         const msg: string = error.error?.erreur ?? '';
         if (msg.toLowerCase().includes('suspendu') ||
@@ -45,6 +49,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
           router.navigate(['/auth/login']);
         }
       }
+
       return throwError(() => error);
     })
   );
