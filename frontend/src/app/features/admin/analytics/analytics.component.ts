@@ -154,7 +154,9 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
   trackByLabel(_: number, item: Point | SpecialtyStat): string { return item.label; }
 
   private fallbackData(): AnalyticsData {
-    const regs = Array.from({ length: this.period === '7d' ? 7 : 30 }, (_, i) => ({ label: `J${i + 1}`, value: Math.round(8 + Math.sin(i / 3) * 5 + i / 2) }));
+    const lengthByPeriod: Record<Period, number> = { '7d': 7, '30d': 30, '90d': 90, '12m': 12 };
+    const prefixByPeriod: Record<Period, string> = { '7d': 'J', '30d': 'J', '90d': 'J', '12m': 'M' };
+    const regs = Array.from({ length: lengthByPeriod[this.period] }, (_, i) => ({ label: `${prefixByPeriod[this.period]}${i + 1}`, value: Math.round(8 + Math.sin(i / 3) * 5 + i / 2) }));
     return {
       registrations: regs,
       roleDistribution: { doctors: 120, patients: 1840, pharmacies: 52 },

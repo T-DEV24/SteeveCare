@@ -2,13 +2,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatPaginator, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
@@ -101,9 +101,9 @@ interface PageResponse<T> {
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef>Actions</th>
                   <td mat-cell *matCellDef="let user">
-                    <button mat-icon-button color="primary" matTooltip="Voir / éditer" (click)="openDrawer(user)"><mat-icon>edit</mat-icon></button>
-                    <button mat-icon-button color="warn" matTooltip="Suspendre le compte" [disabled]="actionLoading === user.id || user.status === 'FROZEN'" (click)="confirmSuspend(user)"><mat-icon>block</mat-icon></button>
-                    <button mat-icon-button matTooltip="Réactiver" [disabled]="actionLoading === user.id || user.status !== 'FROZEN'" (click)="unfreeze(user)"><mat-icon>play_circle</mat-icon></button>
+                    <button mat-icon-button color="primary" matTooltip="Voir / éditer" (click)="openDrawer(user); $event.stopPropagation()"><mat-icon>edit</mat-icon></button>
+                    <button mat-icon-button color="warn" matTooltip="Suspendre le compte" [disabled]="actionLoading === user.id || user.status === 'FROZEN'" (click)="confirmSuspend(user); $event.stopPropagation()"><mat-icon>block</mat-icon></button>
+                    <button mat-icon-button matTooltip="Réactiver" [disabled]="actionLoading === user.id || user.status !== 'FROZEN'" (click)="unfreeze(user); $event.stopPropagation()"><mat-icon>play_circle</mat-icon></button>
                   </td>
                 </ng-container>
                 <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
@@ -153,6 +153,7 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   private readonly filter$ = new Subject<void>();
   private readonly api = inject(ApiService);
   private readonly notification = inject(NotificationService);
+  private readonly route = inject(ActivatedRoute);
   auth = inject(AuthService);
   @ViewChild('drawer') drawer!: MatSidenav;
 
@@ -170,10 +171,15 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   roles = ['PATIENT','DOCTOR','PHARMACY','ADMIN','GESTIONNAIRE','SUPER_ADMIN'];
   statuses = ['ACTIVE','PENDING','FROZEN','DELETED'];
   displayedColumns = ['utilisateur','role','statut','date','actions'];
+  private focusUserId: number | null = null;
 
   ngOnInit(): void {
+    this.route.queryParamMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      this.filterStatus = params.get('status') ?? this.filterStatus;
+      this.focusUserId = Number(params.get('focus')) || null;
+      this.loadUsers();
+    });
     this.filter$.pipe(debounceTime(300), takeUntil(this.destroy$)).subscribe(() => { this.page = 0; this.loadUsers(); });
-    this.loadUsers();
   }
 
   ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
@@ -185,7 +191,13 @@ export class UserManagementComponent implements OnInit, OnDestroy {
     if (this.filterRole) params['role'] = this.filterRole;
     if (this.filterStatus) params['status'] = this.filterStatus;
     this.api.get<PageResponse<UserRow> | UserRow[]>('/api/admin/users', params).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (res) => { const page = res as PageResponse<UserRow>; this.users = Array.isArray(res) ? res : (page.content ?? page.items ?? page.data ?? []); this.totalUsers = Array.isArray(res) ? res.length : (page.totalElements ?? page.total ?? this.users.length); this.loading = false; },
+      next: (res) => {
+        const page = res as PageResponse<UserRow>;
+        this.users = Array.isArray(res) ? res : (page.content ?? page.items ?? page.data ?? []);
+        this.totalUsers = Array.isArray(res) ? res.length : (page.totalElements ?? page.total ?? this.users.length);
+        this.loading = false;
+        this.openFocusedUser();
+      },
       error: () => { this.loading = false; this.users = []; this.totalUsers = 0; }
     });
   }
@@ -193,6 +205,15 @@ export class UserManagementComponent implements OnInit, OnDestroy {
   onFiltersChanged(): void { this.filter$.next(); }
   onPage(event: PageEvent): void { this.page = event.pageIndex; this.size = event.pageSize; this.loadUsers(); }
   openDrawer(user: UserRow): void { this.selectedUser = { ...user }; setTimeout(() => this.drawer.open()); }
+
+  private openFocusedUser(): void {
+    if (!this.focusUserId) return;
+    const user = this.users.find(item => item.id === this.focusUserId);
+    if (user) {
+      this.openDrawer(user);
+      this.focusUserId = null;
+    }
+  }
 
   saveSelectedUser(): void {
     if (!this.selectedUser) return;

@@ -31,7 +31,7 @@ import { Subject, takeUntil } from 'rxjs';
 
         <!-- Logo -->
         <div style="text-align:center;margin-bottom:32px;">
-          <img src="assets/brand/steevacare-logo.svg"
+          <img src="assets/brand/steevacare-logo.png"
                alt="SteevaCare - Télémédecine pour l'Afrique"
                style="display:block;width:180px;max-width:78%;height:auto;margin:0 auto 12px;">
           <p style="color:#7F8C8D;font-size:14px;margin-top:4px;">Accédez à votre espace santé</p>
@@ -196,10 +196,24 @@ export class LoginComponent implements OnDestroy {
           this.loading = false;
           this.loginError = true;
           setTimeout(() => { this.loginError = false; }, 450);
-          const msg = err.error?.erreur ?? 'Email ou mot de passe incorrect';
-          this.notification.error(msg, 5000);
+          this.notification.error(this.getErrorMessage(err, 'Email ou mot de passe incorrect'), 5000);
         }
       });
+  }
+
+  private getErrorMessage(err: any, fallback: string): string {
+    if (err?.status === 0) {
+      return 'Impossible de joindre le serveur SteevaCare. Vérifiez que le backend est démarré sur le port 8082.';
+    }
+
+    if (typeof err?.error === 'string') {
+      return err.error;
+    }
+
+    return err?.error?.erreur
+      ?? err?.error?.message
+      ?? err?.message
+      ?? fallback;
   }
 
   trackByItem(_: number, item: any): unknown {

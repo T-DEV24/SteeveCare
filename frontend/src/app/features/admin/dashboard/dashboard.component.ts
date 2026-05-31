@@ -102,7 +102,7 @@ interface StatCard {
               <div class="stat-card__top">
                 <div class="stat-icon" [style.background]="card.color"><mat-icon>{{card.icon}}</mat-icon></div>
                 <div class="trend" [class.trend--down]="card.trend < 0">
-                  <mat-icon>{{card.trend >= 0 ? 'trending_up' : 'trending_down'}}</mat-icon>
+                  <span class="trend-arrow">{{card.trend >= 0 ? '↑' : '↓'}}</span>
                   {{abs(card.trend)}}%
                 </div>
               </div>
@@ -221,7 +221,7 @@ interface StatCard {
     .stat-icon { width:48px; height:48px; display:grid; place-items:center; border-radius:16px; color:white; }
     .trend { display:inline-flex; align-items:center; gap:4px; padding:5px 8px; border-radius:999px; color:#1E8449; background:#D5F5E3; font-weight:900; font-size:12px; }
     .trend--down { color:#C0392B; background:#FADBD8; }
-    .trend mat-icon { font-size:16px; width:16px; height:16px; }
+    .trend-arrow { font-size:16px; line-height:1; font-weight:900; }
     .stat-value { color:#173B52; font-size:34px; font-weight:900; }
     .stat-label { color:#7F8C8D; font-size:13px; font-weight:700; }
     .sparkline { width:100%; height:46px; margin-top:12px; }
@@ -257,6 +257,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   statsCards: StatCard[] = [];
   recentUsers: RecentUser[] = [];
   alerts: AlertSummary = { pendingAccounts: 0, unassignedAppointments: 0, expiredPrescriptions: 0 };
+  private latestStats: Stats | null = null;
+  private latestTrends: DashboardTrend[] = [];
 
   ngOnInit(): void {
     this.loadDashboard();
@@ -271,30 +273,32 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.api.get<Stats>('/api/admin/stats').pipe(takeUntil(this.destroy$)).subscribe({
       next: (stats) => {
+        this.latestStats = stats;
         this.alerts = {
           pendingAccounts: stats.comptesPending ?? 0,
           unassignedAppointments: stats.appointmentsWithoutDoctor ?? 0,
           expiredPrescriptions: stats.expiredPrescriptions ?? 0
         };
-        this.buildCards(stats, []);
+        this.buildCards(stats, this.latestTrends);
         this.loading = false;
       },
       error: () => {
-        this.buildCards({ totalDoctors: 0, totalPatients: 0, totalAppointments: 0, totalPharmacies: 0 }, []);
+        this.latestStats = { totalDoctors: 0, totalPatients: 0, totalAppointments: 0, totalPharmacies: 0 };
+        this.buildCards(this.latestStats, this.latestTrends);
         this.loading = false;
       }
     });
 
     this.api.get<DashboardTrend[]>('/api/admin/dashboard/trends').pipe(takeUntil(this.destroy$)).subscribe({
-      next: (trends) => this.applyTrends(trends)
+      next: (trends) => { this.latestTrends = trends ?? []; this.applyTrends(this.latestTrends); }
     });
 
     this.api.get<AlertSummary>('/api/admin/alerts').pipe(takeUntil(this.destroy$)).subscribe({
       next: (alerts) => { this.alerts = { ...this.alerts, ...alerts }; }
     });
 
-    this.api.get<RecentUser[]>('/api/admin/users/recent', { size: 8 }).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (users) => { this.recentUsers = users ?? []; },
+    this.api.get<RecentUser[] | { content?: RecentUser[]; items?: RecentUser[]; data?: RecentUser[] }>('/api/admin/users/recent', { size: 8 }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (users) => { this.recentUsers = Array.isArray(users) ? users : (users?.content ?? users?.items ?? users?.data ?? []); },
       error: () => { this.recentUsers = []; }
     });
   }
@@ -334,13 +338,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   private applyTrends(trends: DashboardTrend[]): void {
-    const values: Stats = {
-      totalDoctors: this.statsCards.find(c => c.key === 'doctors')?.value ?? 0,
-      totalPatients: this.statsCards.find(c => c.key === 'patients')?.value ?? 0,
-      totalAppointments: this.statsCards.find(c => c.key === 'appointments')?.value ?? 0,
-      totalPharmacies: this.statsCards.find(c => c.key === 'pharmacies')?.value ?? 0
-    };
-    this.buildCards(values, trends);
+    if (!this.latestStats) {
+      return;
+    }
+    this.buildCards(this.latestStats, trends);
   }
 
   private normalizeSparkline(values: number[]): number[] {

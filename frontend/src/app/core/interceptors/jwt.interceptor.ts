@@ -41,7 +41,7 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
         router.navigate(['/auth/login']);
       }
 
-      if (error.status === 403) {
+      if (error.status === 403 && !isPublic) {
         const msg: string = error.error?.erreur ?? '';
         if (msg.toLowerCase().includes('suspendu') ||
             msg.toLowerCase().includes('frozen')) {
