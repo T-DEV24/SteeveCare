@@ -34,7 +34,7 @@ interface StatCounter {
     <header class="home-header">
       <div class="home-header__inner">
         <button type="button" class="home-logo" (click)="scrollToTop()" aria-label="Retour à l'accueil SteevaCare">
-          <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
+          <img src="assets/brand/steevacare-logo.png" alt="SteevaCare - Télémédecine pour l'Afrique">
         </button>
 
         <nav class="home-header-actions" aria-label="Navigation principale">
@@ -211,7 +211,7 @@ interface StatCounter {
       <div class="home-footer__inner">
         <div class="home-footer__brand">
           <div class="home-footer__logo">
-            <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
+            <img src="assets/brand/steevacare-logo.png" alt="SteevaCare - Télémédecine pour l'Afrique">
           </div>
           <p>Votre santé connectée, partout au Cameroun.</p>
         </div>
