@@ -13,10 +13,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 
 interface UserRow {
   id: number; email: string; nom: string; prenom: string;
@@ -26,7 +28,7 @@ interface UserRow {
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [SidebarComponent,
+  imports: [InitialsPipe, SidebarComponent,
     CommonModule, RouterModule, FormsModule,
     MatIconModule, MatButtonModule, MatCardModule,
     MatTableModule, MatPaginatorModule, MatFormFieldModule,
@@ -62,14 +64,14 @@ interface UserRow {
               <mat-label>Rôle</mat-label>
               <mat-select [(ngModel)]="filterRole" (selectionChange)="applyFilter()">
                 <mat-option value="">Tous les rôles</mat-option>
-                <mat-option *ngFor="let r of roles" [value]="r">{{r}}</mat-option>
+                <mat-option *ngFor="let r of roles; trackBy: trackByItem" [value]="r">{{r}}</mat-option>
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline" style="margin:0;">
               <mat-label>Statut</mat-label>
               <mat-select [(ngModel)]="filterStatus" (selectionChange)="applyFilter()">
                 <mat-option value="">Tous les statuts</mat-option>
-                <mat-option *ngFor="let s of statuses" [value]="s">{{s}}</mat-option>
+                <mat-option *ngFor="let s of statuses; trackBy: trackByItem" [value]="s">{{s}}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
@@ -99,7 +101,7 @@ interface UserRow {
                 <div style="display:flex;align-items:center;gap:12px;">
                   <div class="avatar"
                        [style.background]="getRoleColor(u.role)">
-                    {{getInitials(u.nom, u.prenom)}}
+                    {{ u.nom | initials:u.prenom }}
                   </div>
                   <div>
                     <div style="font-weight:500;color:#2C3E50;">
@@ -230,7 +232,7 @@ interface UserRow {
 export class UserManagementComponent implements OnInit {
   auth    = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -282,12 +284,12 @@ export class UserManagementComponent implements OnInit {
     this.actionLoading = u.id;
     this.api.patch(`/api/admin/users/${u.id}/freeze`).subscribe({
       next: () => {
-        this.snackBar.open(`Compte de ${u.prenom} ${u.nom} gelé ❄️`, '✕', { duration: 3000 });
+        this.notification.warning(`Compte de ${u.prenom} ${u.nom} gelé ❄️`, 3000);
         this.loadUsers();
         this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
@@ -297,12 +299,12 @@ export class UserManagementComponent implements OnInit {
     this.actionLoading = u.id;
     this.api.patch(`/api/admin/users/${u.id}/unfreeze`).subscribe({
       next: () => {
-        this.snackBar.open(`Compte de ${u.prenom} ${u.nom} dégelé ▶️`, '✕', { duration: 3000 });
+        this.notification.success(`Compte de ${u.prenom} ${u.nom} dégelé ▶️`, 3000);
         this.loadUsers();
         this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
@@ -317,20 +319,17 @@ export class UserManagementComponent implements OnInit {
     this.actionLoading = u.id;
     this.api.delete(`/api/admin/delete/${u.id}`).subscribe({
       next: () => {
-        this.snackBar.open(`Compte supprimé définitivement`, '✕', { duration: 3000 });
+        this.notification.success(`Compte supprimé définitivement`, 3000);
         this.loadUsers();
         this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
-  }
 
   getRoleColor(role: string): string {
     const c: Record<string,string> = {
@@ -346,4 +345,9 @@ export class UserManagementComponent implements OnInit {
       day:'2-digit', month:'2-digit', year:'numeric'
     });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

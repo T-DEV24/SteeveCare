@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 
 interface Contact { id: number; nom: string; prenom: string; specialite?: string; }
 interface Message { id: number; senderId: number; contenu: string; timestamp: string; isRead?: boolean; }
@@ -16,7 +17,7 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule,
+  imports: [InitialsPipe, SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule,
             MatButtonModule, MatProgressSpinnerModule],
   template: `
     <div style="display:flex;min-height:100vh;">
@@ -32,13 +33,13 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
               <h2 style="font-size:16px;font-weight:600;color:#1A5276;">💬 Messagerie</h2>
             </div>
             <div style="flex:1;overflow-y:auto;">
-              <div *ngFor="let c of contacts"
+              <div *ngFor="let c of contacts; trackBy: trackByItem"
                    (click)="selectContact(c)"
                    [style.background]="selectedContact?.id === c.id ? '#EBF5FB' : 'white'"
                    style="padding:14px 16px;cursor:pointer;border-bottom:1px solid #F5F6FA;
                           display:flex;align-items:center;gap:12px;transition:background 0.15s;">
                 <div class="avatar" style="background:#1A5276;flex-shrink:0;">
-                  {{getInitials(c.nom, c.prenom)}}
+                  {{ c.nom | initials:c.prenom }}
                 </div>
                 <div style="flex:1;min-width:0;">
                   <div style="font-weight:500;font-size:14px;color:#2C3E50;">
@@ -67,7 +68,7 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
               <div style="background:white;padding:14px 20px;border-bottom:1px solid #EEF0F4;
                           display:flex;align-items:center;gap:12px;">
                 <div class="avatar" style="background:#1A5276;">
-                  {{getInitials(selectedContact.nom, selectedContact.prenom)}}
+                  {{ selectedContact.nom | initials:selectedContact.prenom }}
                 </div>
                 <div>
                   <div style="font-weight:600;">
@@ -290,12 +291,14 @@ export class MessagesComponent implements OnInit, OnDestroy {
     return message.id;
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
-  }
 
   formatTime(t: string): string {
     if (!t) return '';
     return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

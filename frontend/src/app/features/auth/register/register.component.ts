@@ -13,7 +13,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService, AuthResponse } from '../../../core/services/auth.service';
 
@@ -93,7 +94,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
               <div *ngIf="step1.get('password')?.value"
                    style="margin-bottom:12px;">
                 <div style="display:flex;gap:4px;margin-bottom:4px;">
-                  <div *ngFor="let b of [0,1,2]"
+                  <div *ngFor="let b of [0,1,2]; trackBy: trackByItem"
                        [style.background]="passwordStrength > b ? strengthColor : '#EEF0F4'"
                        style="flex:1;height:4px;border-radius:2px;
                               transition:background 0.3s;"></div>
@@ -163,7 +164,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                 <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                   <mat-label>Ville</mat-label>
                   <mat-select formControlName="ville">
-                    <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
+                    <mat-option *ngFor="let v of villes; trackBy: trackByItem" [value]="v">{{v}}</mat-option>
                   </mat-select>
                   <mat-error>Obligatoire</mat-error>
                 </mat-form-field>
@@ -200,7 +201,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
               </h3>
               <div style="background:#F5F6FA;border-radius:10px;padding:20px;
                           display:grid;gap:10px;">
-                <div *ngFor="let row of recap" style="display:flex;gap:8px;">
+                <div *ngFor="let row of recap; trackBy: trackByItem" style="display:flex;gap:8px;">
                   <span style="color:#7F8C8D;font-size:13px;min-width:100px;">
                     {{row.label}} :
                   </span>
@@ -248,7 +249,7 @@ export class RegisterComponent {
   private fb          = inject(FormBuilder);
   private api         = inject(ApiService);
   private authService = inject(AuthService);
-  private snackBar    = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading      = false;
   showPwd      = false;
@@ -315,18 +316,19 @@ export class RegisterComponent {
     this.api.post<AuthResponse>('/api/auth/register', body).subscribe({
       next: (res) => {
         this.loading = false;
-        this.snackBar.open('Compte créé avec succès ! Bienvenue 🎉', '✕', {
-          duration: 3000, panelClass: ['snack-success']
-        });
+        this.notification.success('Compte créé avec succès ! Bienvenue 🎉', 3000);
         this.authService.register(res);
       },
       error: (err) => {
         this.loading = false;
         const msg = err.error?.erreur ?? 'Erreur lors de la création du compte';
-        this.snackBar.open(msg, '✕', {
-          duration: 5000, panelClass: ['snack-error']
-        });
+        this.notification.error(msg, 5000);
       }
     });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 
 interface Stats {
   totalPatients: number; totalDoctors: number; totalPharmacies: number;
@@ -24,7 +25,7 @@ interface RecentUser {
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
+  imports: [InitialsPipe, SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
             MatCardModule, MatProgressSpinnerModule, MatTooltipModule],
   template: `
     <div style="display:flex;min-height:100vh;">
@@ -57,7 +58,7 @@ interface RecentUser {
         </div>
 
         <div *ngIf="!loading" class="stats-grid">
-          <div class="stat-card" *ngFor="let s of statsCards">
+          <div class="stat-card" *ngFor="let s of statsCards; trackBy: trackByItem">
             <div class="stat-icon" [style.background]="s.color">
               <mat-icon>{{s.icon}}</mat-icon>
             </div>
@@ -102,8 +103,8 @@ interface RecentUser {
             <a routerLink="/admin/users" style="font-size:13px;color:#2980B9;text-decoration:none;">Voir tous →</a>
           </div>
           <div *ngIf="recentUsers.length > 0" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-            <div *ngFor="let u of recentUsers" style="display:flex;align-items:center;gap:12px;background:#F5F6FA;border-radius:10px;padding:12px;">
-              <div class="avatar" style="background:#1A5276;">{{getInitials(u.nom, u.prenom)}}</div>
+            <div *ngFor="let u of recentUsers; trackBy: trackByItem" style="display:flex;align-items:center;gap:12px;background:#F5F6FA;border-radius:10px;padding:12px;">
+              <div class="avatar" style="background:#1A5276;">{{ u.nom | initials:u.prenom }}</div>
               <div style="flex:1;min-width:0;">
                 <div style="font-size:13px;font-weight:600;color:#2C3E50;">{{u.prenom}} {{u.nom}}</div>
                 <div style="font-size:11px;color:#7F8C8D;">{{u.role}} · {{formatDate(u.createdAt)}}</div>
@@ -193,11 +194,13 @@ export class AdminDashboardComponent implements OnInit {
     }).join(' ');
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
-  }
 
   formatDate(d: string): string {
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

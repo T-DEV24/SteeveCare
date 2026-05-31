@@ -10,11 +10,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
 
 interface Doctor {
   id: number; userId: number; nom: string; prenom: string; specialite: string;
@@ -25,7 +27,7 @@ interface Doctor {
 @Component({
   selector: 'app-doctor-search',
   standalone: true,
-  imports: [SidebarComponent,
+  imports: [InitialsPipe, SidebarComponent,
     CommonModule, RouterModule, FormsModule,
     MatIconModule, MatButtonModule, MatCardModule,
     MatFormFieldModule, MatInputModule, MatSelectModule,
@@ -50,14 +52,14 @@ interface Doctor {
               <mat-label>Spécialité</mat-label>
               <mat-select [(ngModel)]="filterSpec">
                 <mat-option value="">Toutes les spécialités</mat-option>
-                <mat-option *ngFor="let s of specialites" [value]="s">{{s}}</mat-option>
+                <mat-option *ngFor="let s of specialites; trackBy: trackByItem" [value]="s">{{s}}</mat-option>
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline" style="margin:0;">
               <mat-label>Ville</mat-label>
               <mat-select [(ngModel)]="filterVille">
                 <mat-option value="">Toutes les villes</mat-option>
-                <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
+                <mat-option *ngFor="let v of villes; trackBy: trackByItem" [value]="v">{{v}}</mat-option>
               </mat-select>
             </mat-form-field>
             <button mat-raised-button (click)="search()"
@@ -81,13 +83,13 @@ interface Doctor {
         <!-- Grille médecins -->
         <div *ngIf="!loading"
              style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;">
-          <mat-card *ngFor="let d of pagedDoctors"
+          <mat-card *ngFor="let d of pagedDoctors; trackBy: trackByItem"
                     style="padding:24px;display:flex;flex-direction:column;gap:12px;">
             <!-- Avatar + Nom -->
             <div style="display:flex;align-items:center;gap:14px;">
               <div class="avatar avatar-lg"
                    [style.background]="getAvatarColor(d.specialite)">
-                {{getInitials(d.nom, d.prenom)}}
+                {{ d.nom | initials:d.prenom }}
               </div>
               <div>
                 <div style="font-weight:600;font-size:16px;color:#2C3E50;">
@@ -118,7 +120,7 @@ interface Doctor {
 
             <!-- Étoiles -->
             <div style="display:flex;gap:2px;">
-              <mat-icon *ngFor="let s of getStars(d)" style="color:#F39C12;font-size:16px;width:16px;">
+              <mat-icon *ngFor="let s of getStars(d); trackBy: trackByItem" style="color:#F39C12;font-size:16px;width:16px;">
                 {{s}}
               </mat-icon>
             </div>
@@ -160,7 +162,7 @@ interface Doctor {
                   (click)="changePage(currentPage-1)">
             <mat-icon>chevron_left</mat-icon>
           </button>
-          <button *ngFor="let p of pageNumbers" mat-icon-button
+          <button *ngFor="let p of pageNumbers; trackBy: trackByItem" mat-icon-button
                   [attr.aria-label]="'Aller à la page ' + (p + 1)"
                   (click)="changePage(p)"
                   [style.background]="p === currentPage ? '#1A5276' : 'transparent'"
@@ -186,7 +188,7 @@ interface Doctor {
              style="display:flex;align-items:center;gap:12px;
                     background:#F5F6FA;border-radius:10px;padding:14px;margin-bottom:20px;">
           <div class="avatar" [style.background]="getAvatarColor(selectedDoctor.specialite)">
-            {{getInitials(selectedDoctor.nom, selectedDoctor.prenom)}}
+            {{ selectedDoctor.nom | initials:selectedDoctor.prenom }}
           </div>
           <div>
             <div style="font-weight:600;">Dr. {{selectedDoctor.prenom}} {{selectedDoctor.nom}}</div>
@@ -251,7 +253,7 @@ interface Doctor {
 export class DoctorSearchComponent implements OnInit {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
   private router   = inject(Router);
 
   loading = true;
@@ -326,21 +328,16 @@ export class DoctorSearchComponent implements OnInit {
       next: () => {
         this.rdvLoading = false;
         this.showDialog = false;
-        this.snackBar.open('✅ Rendez-vous pris avec succès !', '✕',
-          { duration: 4000, panelClass: ['snack-success'] });
+        this.notification.success('✅ Rendez-vous pris avec succès !', 4000);
         this.router.navigate(['/patient/appointments']);
       },
       error: (err) => {
         this.rdvLoading = false;
-        this.snackBar.open(err.error?.erreur ?? 'Erreur lors de la prise de RDV', '✕',
-          { duration: 5000, panelClass: ['snack-error'] });
+        this.notification.error(err.error?.erreur ?? 'Erreur lors de la prise de RDV', 5000);
       }
     });
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
-  }
 
   getAvatarColor(spec: string): string {
     const colors = ['#1A5276','#27AE60','#8E44AD','#E67E22','#2980B9','#C0392B'];
@@ -351,4 +348,9 @@ export class DoctorSearchComponent implements OnInit {
     const n = d.tarif % 2 === 0 ? 4 : 5;
     return [...Array(n).fill('star'), ...Array(5-n).fill('star_border')];
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

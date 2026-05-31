@@ -11,7 +11,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
@@ -51,7 +52,7 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
                                   subscriptSizing="dynamic" style="width:100%;">
                     <mat-label>Rôle</mat-label>
                     <mat-select formControlName="role" (selectionChange)="onRoleChange($event.value)">
-                      <mat-option *ngFor="let r of availableRoles" [value]="r.value">
+                      <mat-option *ngFor="let r of availableRoles; trackBy: trackByItem" [value]="r.value">
                         <mat-icon style="font-size:16px;vertical-align:middle;margin-right:6px;">
                           {{r.icon}}
                         </mat-icon>
@@ -166,7 +167,7 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
                                     subscriptSizing="dynamic" style="width:100%;margin-bottom:4px;">
                       <mat-label>Spécialité *</mat-label>
                       <mat-select formControlName="specialite">
-                        <mat-option *ngFor="let s of specialites" [value]="s">{{s}}</mat-option>
+                        <mat-option *ngFor="let s of specialites; trackBy: trackByItem" [value]="s">{{s}}</mat-option>
                       </mat-select>
                       <mat-error>La spécialité est obligatoire</mat-error>
                     </mat-form-field>
@@ -191,7 +192,7 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
                       <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                         <mat-label>Ville</mat-label>
                         <mat-select formControlName="villeMedecin">
-                          <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
+                          <mat-option *ngFor="let v of villes; trackBy: trackByItem" [value]="v">{{v}}</mat-option>
                         </mat-select>
                       </mat-form-field>
                     </div>
@@ -223,7 +224,7 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
                       <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
                         <mat-label>Ville</mat-label>
                         <mat-select formControlName="villePharmacie">
-                          <mat-option *ngFor="let v of villes" [value]="v">{{v}}</mat-option>
+                          <mat-option *ngFor="let v of villes; trackBy: trackByItem" [value]="v">{{v}}</mat-option>
                         </mat-select>
                       </mat-form-field>
                       <mat-form-field appearance="outline" floatLabel="always" subscriptSizing="dynamic">
@@ -274,7 +275,7 @@ export class CreateUserComponent {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
   private fb       = inject(FormBuilder);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading      = false;
   showPwd      = false;
@@ -371,10 +372,7 @@ export class CreateUserComponent {
     this.api.post('/api/admin/users', this.form.value).subscribe({
       next: (res: any) => {
         this.loading = false;
-        this.snackBar.open(
-          `✅ Compte ${res.prenom} ${res.nom} créé avec succès !`, '✕',
-          { duration: 4000, panelClass: ['snack-success'] }
-        );
+        this.notification.success(`✅ Compte ${res.prenom} ${res.nom} créé avec succès !`, 4000);
         this.form.reset();
         this.selectedRole = '';
         this.selectedIndex = 0;
@@ -382,8 +380,13 @@ export class CreateUserComponent {
       error: (err) => {
         this.loading = false;
         const msg = err.error?.erreur ?? 'Erreur lors de la création';
-        this.snackBar.open(msg, '✕', { duration: 5000, panelClass: ['snack-error'] });
+        this.notification.error(msg, 5000);
       }
     });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

@@ -113,7 +113,7 @@ import { trigger, state, style, animate, transition, keyframes } from '@angular/
 
       <!-- Points pulsants -->
       <div style="position:absolute;bottom:40px;display:flex;gap:8px;">
-        <div *ngFor="let d of [0,1,2]"
+        <div *ngFor="let d of [0,1,2]; trackBy: trackByItem"
              [style.animation-delay]="(d*200)+'ms'"
              style="width:6px;height:6px;border-radius:50%;
                     background:rgba(255,255,255,0.4);
@@ -159,4 +159,9 @@ export class SplashScreenComponent implements OnInit {
       setTimeout(() => this.splashDone.emit(), 650);
     }, 3000);
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

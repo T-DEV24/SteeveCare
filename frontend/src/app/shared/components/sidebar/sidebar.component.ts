@@ -33,7 +33,7 @@ export interface NavLink {
       </div>
 
       <nav class="sidebar-nav">
-        <a *ngFor="let link of navLinks"
+        <a *ngFor="let link of navLinks; trackBy: trackByItem"
            class="nav-item"
            [class.active]="link.route === activeRoute"
            [routerLink]="link.route"
@@ -120,4 +120,9 @@ export class SidebarComponent {
     };
     return links[this.role];
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

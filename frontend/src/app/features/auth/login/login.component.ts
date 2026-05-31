@@ -8,7 +8,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService, AuthResponse } from '../../../core/services/auth.service';
 
@@ -105,7 +106,7 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
             🔑 Comptes de démonstration
           </summary>
           <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
-            <div *ngFor="let demo of demoAccounts"
+            <div *ngFor="let demo of demoAccounts; trackBy: trackByItem"
                  (click)="fillDemo(demo)"
                  style="cursor:pointer;padding:8px 10px;border-radius:6px;
                         background:#F5F6FA;font-size:12px;display:flex;
@@ -148,7 +149,7 @@ export class LoginComponent {
   private fb          = inject(FormBuilder);
   private api         = inject(ApiService);
   private authService = inject(AuthService);
-  private snackBar    = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading      = false;
   showPassword = false;
@@ -189,11 +190,13 @@ export class LoginComponent {
           this.loginError = true;
           setTimeout(() => { this.loginError = false; }, 450);
           const msg = err.error?.erreur ?? 'Email ou mot de passe incorrect';
-          this.snackBar.open(msg, '✕', {
-            duration: 5000,
-            panelClass: ['snack-error']
-          });
+          this.notification.error(msg, 5000);
         }
       });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

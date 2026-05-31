@@ -10,7 +10,8 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
@@ -156,7 +157,7 @@ interface Prescription {
 export class PrescriptionsComponent implements OnInit {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -196,10 +197,10 @@ export class PrescriptionsComponent implements OnInit {
         const idx = this.all.findIndex(x => x.id === p.id);
         if (idx >= 0) this.all[idx] = updated;
         this.applyFilter();
-        this.snackBar.open('Ordonnance délivrée ✅', '✕', { duration: 3000 });
+        this.notification.success('Ordonnance délivrée ✅', 3000);
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
       }
     });
   }

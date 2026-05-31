@@ -7,10 +7,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string;
@@ -21,7 +24,7 @@ interface Appointment {
 @Component({
   selector: 'app-doctor-dashboard',
   standalone: true,
-  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [InitialsPipe, DateFrPipe, SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
@@ -119,21 +122,21 @@ interface Appointment {
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
-              <div *ngFor="let rdv of pending"
+              <div *ngFor="let rdv of pending; trackBy: trackByItem"
                    style="background:#F5F6FA;border-radius:10px;padding:16px;
                           border-left:4px solid #F39C12;">
                 <div style="display:flex;justify-content:space-between;
                             align-items:flex-start;gap:12px;">
                   <div style="display:flex;align-items:center;gap:12px;flex:1;">
                     <div class="avatar" style="background:#0B5345;flex-shrink:0;">
-                      {{getInitials(rdv.patientNom, rdv.patientPrenom)}}
+                      {{ rdv.patientNom | initials:rdv.patientPrenom }}
                     </div>
                     <div>
                       <div style="font-weight:600;">
                         {{rdv.patientPrenom}} {{rdv.patientNom}}
                       </div>
                       <div style="font-size:12px;color:#7F8C8D;">
-                        {{formatDateFr(rdv.dateHeure)}} —
+                        {{ rdv.dateHeure | dateFr }} —
                         {{rdv.type === 'VIDEO' ? '📹 Vidéo' : '💬 Message'}}
                       </div>
                       <p *ngIf="rdv.motif"
@@ -173,20 +176,20 @@ interface Appointment {
               <p>Aucun rendez-vous confirmé</p>
             </div>
             <div style="display:flex;flex-direction:column;gap:12px;">
-              <div *ngFor="let rdv of confirmed"
+              <div *ngFor="let rdv of confirmed; trackBy: trackByItem"
                    style="background:#F5F6FA;border-radius:10px;padding:16px;
                           border-left:4px solid #27AE60;display:flex;
                           align-items:center;justify-content:space-between;gap:12px;">
                 <div style="display:flex;align-items:center;gap:12px;">
                   <div class="avatar" style="background:#27AE60;">
-                    {{getInitials(rdv.patientNom, rdv.patientPrenom)}}
+                    {{ rdv.patientNom | initials:rdv.patientPrenom }}
                   </div>
                   <div>
                     <div style="font-weight:500;">
                       {{rdv.patientPrenom}} {{rdv.patientNom}}
                     </div>
                     <div style="font-size:12px;color:#7F8C8D;">
-                      {{formatDateFr(rdv.dateHeure)}}
+                      {{ rdv.dateHeure | dateFr }}
                     </div>
                   </div>
                 </div>
@@ -232,7 +235,7 @@ interface Appointment {
 export class DoctorDashboardComponent implements OnInit {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading   = true;
   all: Appointment[] = [];
@@ -275,7 +278,7 @@ export class DoctorDashboardComponent implements OnInit {
     this.api.get<Appointment[]>('/api/appointments/doctor/me').subscribe({
       next: (d) => { this.all = d; this.loading = false; },
       error: () => {
-        this.snackBar.open('Impossible de charger les rendez-vous', '✕', { duration: 4000 });
+        this.notification.error('Impossible de charger les rendez-vous', 4000);
         this.loading = false;
       }
     });
@@ -285,11 +288,11 @@ export class DoctorDashboardComponent implements OnInit {
     this.actionLoading = rdv.id;
     this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CONFIRMED' }).subscribe({
       next: () => {
-        this.snackBar.open('Rendez-vous confirmé ✅', '✕', { duration: 3000 });
+        this.notification.success('Rendez-vous confirmé ✅', 3000);
         this.load(); this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
@@ -310,11 +313,11 @@ export class DoctorDashboardComponent implements OnInit {
       motifRejet: this.rejectMotif
     }).subscribe({
       next: () => {
-        this.snackBar.open('Rendez-vous refusé', '✕', { duration: 3000 });
+        this.notification.warning('Rendez-vous refusé', 3000);
         this.load(); this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
@@ -335,16 +338,10 @@ export class DoctorDashboardComponent implements OnInit {
     }).length;
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
+
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
   }
 
-  formatDateFr(d: string): string {
-    if (!d) return '';
-    const date = new Date(d);
-    const mois = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${date.getDate()} ${mois[date.getMonth()]} à ${h}h${m}`;
-  }
 }

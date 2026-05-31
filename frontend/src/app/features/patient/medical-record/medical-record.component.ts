@@ -9,7 +9,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
@@ -41,7 +42,7 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
 
         <div *ngIf="!loading"
              style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-          <mat-card *ngFor="let section of sections" style="padding:24px;">
+          <mat-card *ngFor="let section of sections; trackBy: trackByItem" style="padding:24px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
               <mat-icon [style.color]="section.color">{{section.icon}}</mat-icon>
               <h3 style="font-size:15px;font-weight:600;color:#2C3E50;">{{section.label}}</h3>
@@ -72,7 +73,7 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
 export class MedicalRecordComponent implements OnInit {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   loading  = true;
   saving   = false;
@@ -105,9 +106,14 @@ export class MedicalRecordComponent implements OnInit {
       next: () => {
         this.saving = false;
         this.editMode = false;
-        this.snackBar.open('Dossier médical mis à jour ✅', '✕', { duration: 3000 });
+        this.notification.success('Dossier médical mis à jour ✅', 3000);
       },
       error: () => { this.saving = false; }
     });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

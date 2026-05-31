@@ -10,6 +10,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
 
 interface Appointment {
   id: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
@@ -23,7 +25,7 @@ interface PrescriptionPreview {
 @Component({
   selector: 'app-patient-dashboard',
   standalone: true,
-  imports: [SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
+  imports: [InitialsPipe, DateFrPipe, SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
             MatCardModule, MatProgressSpinnerModule, MatTooltipModule],
   template: `
     <div style="display:flex;min-height:100vh;">
@@ -47,7 +49,7 @@ interface PrescriptionPreview {
         <!-- 4 Action Cards -->
         <div style="display:grid;grid-template-columns:repeat(2,1fr);
                     gap:16px;margin-bottom:28px;">
-          <a *ngFor="let card of actionCards" [routerLink]="card.link"
+          <a *ngFor="let card of actionCards; trackBy: trackByItem" [routerLink]="card.link"
              style="text-decoration:none;">
             <div style="background:white;border-radius:14px;padding:24px;
                         cursor:pointer;transition:all 0.2s;
@@ -82,7 +84,7 @@ interface PrescriptionPreview {
           </div>
           <div style="height:180px;display:flex;align-items:flex-end;gap:6px;
                       padding:12px;background:#F8FAFC;border-radius:12px;">
-            <div *ngFor="let bar of appointmentChart"
+            <div *ngFor="let bar of appointmentChart; trackBy: trackByItem"
                  style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;">
               <div [style.height.%]="bar.height"
                    [title]="bar.label + ' : ' + bar.count + ' RDV'"
@@ -107,7 +109,7 @@ interface PrescriptionPreview {
             </a>
           </div>
           <div *ngIf="recentPrescriptions.length > 0" style="display:flex;flex-direction:column;gap:10px;">
-            <div *ngFor="let p of recentPrescriptions"
+            <div *ngFor="let p of recentPrescriptions; trackBy: trackByItem"
                  style="display:flex;align-items:center;gap:12px;background:#F5F6FA;border-radius:10px;padding:12px 14px;">
               <mat-icon style="color:#27AE60;">receipt_long</mat-icon>
               <div style="flex:1;min-width:0;">
@@ -145,11 +147,11 @@ interface PrescriptionPreview {
           <!-- Liste RDV -->
           <div *ngIf="!loadingRdv && upcomingRdv.length > 0"
                style="display:flex;flex-direction:column;gap:12px;">
-            <div *ngFor="let rdv of upcomingRdv"
+            <div *ngFor="let rdv of upcomingRdv; trackBy: trackByItem"
                  style="display:flex;align-items:center;gap:14px;
                         background:#F5F6FA;border-radius:10px;padding:14px 16px;">
               <div class="avatar" style="background:#1A5276;flex-shrink:0;">
-                {{getInitials(rdv.doctorNom, rdv.doctorPrenom)}}
+                {{ rdv.doctorNom | initials:rdv.doctorPrenom }}
               </div>
               <div style="flex:1;min-width:0;">
                 <div style="font-weight:500;color:#2C3E50;font-size:14px;">
@@ -159,7 +161,7 @@ interface PrescriptionPreview {
                   {{rdv.doctorSpecialite}}
                 </div>
                 <div style="font-size:12px;color:#7F8C8D;margin-top:2px;">
-                  📅 {{formatDateFr(rdv.dateHeure)}}
+                  📅 {{ rdv.dateHeure | dateFr }}
                 </div>
               </div>
               <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
@@ -285,23 +287,15 @@ export class PatientDashboardComponent implements OnInit {
     return this.appointmentChart.reduce((sum, bar) => sum + bar.count, 0);
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
-  }
 
   formatShortDate(d?: string): string {
     if (!d) return '—';
     return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   }
 
-  formatDateFr(d: string): string {
-    if (!d) return '';
-    const date = new Date(d);
-    const jours = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-    const mois  = ['janvier','février','mars','avril','mai','juin',
-                   'juillet','août','septembre','octobre','novembre','décembre'];
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${jours[date.getDay()]} ${date.getDate()} ${mois[date.getMonth()]} à ${h}h${m}`;
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
   }
+
 }

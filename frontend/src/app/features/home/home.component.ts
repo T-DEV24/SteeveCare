@@ -1,5 +1,5 @@
 // src/app/features/home/home.component.ts
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-home',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterModule, MatButtonModule, MatIconModule, MatCardModule],
   template: `
     <!-- HEADER -->
@@ -72,7 +73,7 @@ import { CommonModule } from '@angular/common';
           Tout ce dont vous avez besoin pour prendre soin de votre santé
         </p>
         <div class="home-services-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px;">
-          <mat-card *ngFor="let service of services"
+          <mat-card *ngFor="let service of services; trackBy: trackByItem"
                     style="padding:28px;text-align:center;cursor:default;
                            transition:transform 0.2s,box-shadow 0.2s;"
                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 30px rgba(0,0,0,0.12)'"
@@ -103,7 +104,7 @@ import { CommonModule } from '@angular/common';
           La plateforme de confiance pour votre santé
         </p>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:24px;">
-          <div *ngFor="let point of whyUs" style="text-align:center;padding:24px 16px;">
+          <div *ngFor="let point of whyUs; trackBy: trackByItem" style="text-align:center;padding:24px 16px;">
             <div style="font-size:40px;margin-bottom:12px;">{{point.emoji}}</div>
             <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;color:#2C3E50;">
               {{point.title}}
@@ -201,4 +202,9 @@ export class HomeComponent {
     { emoji: '💰', title: 'Tarifs transparents',
       text: 'Connaissez le tarif avant la consultation, sans mauvaise surprise.' },
   ];
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

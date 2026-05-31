@@ -1,149 +1,88 @@
 // src/app/app.routes.ts
-import { Routes } from '@angular/router';
+import { Route, Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
+const publicRoute = (path: string, loadComponent: NonNullable<Route['loadComponent']>): Route => ({
+  path,
+  loadComponent
+});
+
+const protectedRoute = (
+  path: string,
+  roles: string[],
+  loadComponent: NonNullable<Route['loadComponent']>
+): Route => ({
+  path,
+  canActivate: [authGuard, roleGuard],
+  data: { roles },
+  loadComponent
+});
+
+const patientRoles = ['PATIENT'];
+const doctorRoles = ['DOCTOR'];
+const pharmacyRoles = ['PHARMACY'];
+const adminRoles = ['ADMIN', 'GESTIONNAIRE', 'SUPER_ADMIN'];
+
 export const routes: Routes = [
-  // Racine
   { path: '', redirectTo: 'home', pathMatch: 'full' },
 
-  // ── Public ────────────────────────────────────────────────────────────────
-  {
-    path: 'home',
-    loadComponent: () =>
-      import('./features/home/home.component').then(m => m.HomeComponent)
-  },
-  {
-    path: 'auth/login',
-    loadComponent: () =>
-      import('./features/auth/login/login.component').then(m => m.LoginComponent)
-  },
-  {
-    path: 'auth/register',
-    loadComponent: () =>
-      import('./features/auth/register/register.component').then(m => m.RegisterComponent)
-  },
+  // Toutes les pages applicatives sont chargées en lazy loading standalone.
+  publicRoute('home', () =>
+    import('./features/home/home.component').then(m => m.HomeComponent)
+  ),
+  publicRoute('auth/login', () =>
+    import('./features/auth/login/login.component').then(m => m.LoginComponent)
+  ),
+  publicRoute('auth/register', () =>
+    import('./features/auth/register/register.component').then(m => m.RegisterComponent)
+  ),
 
-  // ── PATIENT ────────────────────────────────────────────────────────────────
-  {
-    path: 'patient/dashboard',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PATIENT'] },
-    loadComponent: () =>
-      import('./features/patient/dashboard/dashboard.component')
-        .then(m => m.PatientDashboardComponent)
-  },
-  {
-    path: 'patient/doctors',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PATIENT'] },
-    loadComponent: () =>
-      import('./features/patient/doctors/doctors.component')
-        .then(m => m.DoctorSearchComponent)
-  },
-  {
-    path: 'patient/appointments',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PATIENT'] },
-    loadComponent: () =>
-      import('./features/patient/appointments/appointments.component')
-        .then(m => m.MyAppointmentsComponent)
-  },
-  {
-    path: 'patient/medical-record',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PATIENT'] },
-    loadComponent: () =>
-      import('./features/patient/medical-record/medical-record.component')
-        .then(m => m.MedicalRecordComponent)
-  },
-  {
-    path: 'patient/messages',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PATIENT'] },
-    loadComponent: () =>
-      import('./features/patient/messages/messages.component')
-        .then(m => m.MessagesComponent)
-  },
+  protectedRoute('patient/dashboard', patientRoles, () =>
+    import('./features/patient/dashboard/dashboard.component').then(m => m.PatientDashboardComponent)
+  ),
+  protectedRoute('patient/doctors', patientRoles, () =>
+    import('./features/patient/doctors/doctors.component').then(m => m.DoctorSearchComponent)
+  ),
+  protectedRoute('patient/appointments', patientRoles, () =>
+    import('./features/patient/appointments/appointments.component').then(m => m.MyAppointmentsComponent)
+  ),
+  protectedRoute('patient/medical-record', patientRoles, () =>
+    import('./features/patient/medical-record/medical-record.component').then(m => m.MedicalRecordComponent)
+  ),
+  protectedRoute('patient/messages', patientRoles, () =>
+    import('./features/patient/messages/messages.component').then(m => m.MessagesComponent)
+  ),
 
-  // ── DOCTOR ─────────────────────────────────────────────────────────────────
-  {
-    path: 'doctor/dashboard',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['DOCTOR'] },
-    loadComponent: () =>
-      import('./features/doctor/dashboard/dashboard.component')
-        .then(m => m.DoctorDashboardComponent)
-  },
-  {
-    path: 'doctor/appointments',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['DOCTOR'] },
-    loadComponent: () =>
-      import('./features/doctor/appointments/appointments.component')
-        .then(m => m.DoctorAppointmentsComponent)
-  },
-  {
-    path: 'doctor/consultation/:id',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['DOCTOR'] },
-    loadComponent: () =>
-      import('./features/doctor/consultation/consultation.component')
-        .then(m => m.ConsultationComponent)
-  },
-  {
-    path: 'doctor/messages',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['DOCTOR'] },
-    loadComponent: () =>
-      import('./features/doctor/messages/messages.component')
-        .then(m => m.DoctorMessagesComponent)
-  },
+  protectedRoute('doctor/dashboard', doctorRoles, () =>
+    import('./features/doctor/dashboard/dashboard.component').then(m => m.DoctorDashboardComponent)
+  ),
+  protectedRoute('doctor/appointments', doctorRoles, () =>
+    import('./features/doctor/appointments/appointments.component').then(m => m.DoctorAppointmentsComponent)
+  ),
+  protectedRoute('doctor/consultation/:id', doctorRoles, () =>
+    import('./features/doctor/consultation/consultation.component').then(m => m.ConsultationComponent)
+  ),
+  protectedRoute('doctor/messages', doctorRoles, () =>
+    import('./features/doctor/messages/messages.component').then(m => m.DoctorMessagesComponent)
+  ),
 
-  // ── PHARMACY ───────────────────────────────────────────────────────────────
-  {
-    path: 'pharmacy/dashboard',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PHARMACY'] },
-    loadComponent: () =>
-      import('./features/pharmacy/dashboard/dashboard.component')
-        .then(m => m.PharmacyDashboardComponent)
-  },
-  {
-    path: 'pharmacy/prescriptions',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['PHARMACY'] },
-    loadComponent: () =>
-      import('./features/pharmacy/prescriptions/prescriptions.component')
-        .then(m => m.PrescriptionsComponent)
-  },
+  protectedRoute('pharmacy/dashboard', pharmacyRoles, () =>
+    import('./features/pharmacy/dashboard/dashboard.component').then(m => m.PharmacyDashboardComponent)
+  ),
+  protectedRoute('pharmacy/prescriptions', pharmacyRoles, () =>
+    import('./features/pharmacy/prescriptions/prescriptions.component').then(m => m.PrescriptionsComponent)
+  ),
 
-  // ── ADMIN / GESTIONNAIRE / SUPER_ADMIN ─────────────────────────────────────
-  {
-    path: 'admin/dashboard',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['ADMIN', 'GESTIONNAIRE', 'SUPER_ADMIN'] },
-    loadComponent: () =>
-      import('./features/admin/dashboard/dashboard.component')
-        .then(m => m.AdminDashboardComponent)
-  },
-  {
-    path: 'admin/users',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['ADMIN', 'GESTIONNAIRE', 'SUPER_ADMIN'] },
-    loadComponent: () =>
-      import('./features/admin/users/users.component')
-        .then(m => m.UserManagementComponent)
-  },
-  {
-    path: 'admin/create-user',
-    canActivate: [authGuard, roleGuard],
-    data: { roles: ['ADMIN', 'GESTIONNAIRE', 'SUPER_ADMIN'] },
-    loadComponent: () =>
-      import('./features/admin/create-user/create-user.component')
-        .then(m => m.CreateUserComponent)
-  },
+  protectedRoute('admin/dashboard', adminRoles, () =>
+    import('./features/admin/dashboard/dashboard.component').then(m => m.AdminDashboardComponent)
+  ),
+  protectedRoute('admin/users', adminRoles, () =>
+    import('./features/admin/users/users.component').then(m => m.UserManagementComponent)
+  ),
+  protectedRoute('admin/create-user', adminRoles, () =>
+    import('./features/admin/create-user/create-user.component').then(m => m.CreateUserComponent)
+  ),
 
-  // ── Redirection wildcard (toujours en dernier) ─────────────────────────────
   { path: '**', redirectTo: '/' }
 ];

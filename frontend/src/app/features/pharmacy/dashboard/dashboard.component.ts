@@ -8,7 +8,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
@@ -250,7 +251,9 @@ interface Prescription {
 export class PharmacyDashboardComponent implements OnInit, OnDestroy {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
+
+  @ViewChild('codeInput') codeInput?: ElementRef<HTMLInputElement>;
 
   @ViewChild('codeInput') codeInput?: ElementRef<HTMLInputElement>;
 
@@ -323,12 +326,11 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
         const idx = this.prescriptions.findIndex(x => x.id === p.id);
         if (idx >= 0) this.prescriptions[idx] = updated;
         this.prescriptions = [...this.prescriptions];
-        this.snackBar.open('Ordonnance marquée comme délivrée ✅', '✕',
-          { duration: 3000, panelClass: ['snack-success'] });
+        this.notification.success('Ordonnance marquée comme délivrée ✅', 3000);
       },
       error: (err) => {
         this.deliverLoading = false;
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
       }
     });
   }
