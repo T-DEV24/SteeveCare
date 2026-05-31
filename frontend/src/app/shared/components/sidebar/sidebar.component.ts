@@ -109,11 +109,13 @@ export class SidebarComponent {
         { icon: 'dashboard', label: 'Tableau de bord', route: '/admin/dashboard' },
         { icon: 'people', label: 'Utilisateurs', route: '/admin/users' },
         { icon: 'person_add', label: 'Créer un compte', route: '/admin/create-user' },
+        { icon: 'account_circle', label: 'Mon profil', route: '/profile' },
       ],
       doctor: [
         { icon: 'dashboard', label: 'Tableau de bord', route: '/doctor/dashboard' },
         { icon: 'calendar_today', label: 'Rendez-vous', route: '/doctor/appointments' },
         { icon: 'chat', label: 'Messagerie', route: '/doctor/messages' },
+        { icon: 'account_circle', label: 'Mon profil', route: '/profile' },
       ],
       patient: [
         { icon: 'home', label: 'Accueil', route: '/patient/dashboard' },
@@ -121,10 +123,12 @@ export class SidebarComponent {
         { icon: 'event', label: 'Mes rendez-vous', route: '/patient/appointments' },
         { icon: 'folder_shared', label: 'Dossier médical', route: '/patient/medical-record' },
         { icon: 'chat', label: 'Messagerie', route: '/patient/messages' },
+        { icon: 'account_circle', label: 'Mon profil', route: '/profile' },
       ],
       pharmacy: [
         { icon: 'dashboard', label: 'Tableau de bord', route: '/pharmacy/dashboard' },
         { icon: 'description', label: 'Ordonnances', route: '/pharmacy/prescriptions' },
+        { icon: 'account_circle', label: 'Mon profil', route: '/profile' },
       ],
     };
     return links[this.role];

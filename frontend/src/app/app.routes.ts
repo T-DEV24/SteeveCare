@@ -51,6 +51,13 @@ export const routes: Routes = [
     import('./features/auth/register/register.component').then(m => m.RegisterComponent)
   ),
 
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/shared/profile/profile.component').then(m => m.ProfileComponent)
+  },
+
   protectedRouteGroup('patient', patientRoles, [
     protectedChildRoute('dashboard', patientRoles, () =>
       import('./features/patient/dashboard/dashboard.component').then(m => m.PatientDashboardComponent)
