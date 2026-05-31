@@ -56,13 +56,14 @@ interface Prescription {
               <mat-icon style="position:absolute;left:12px;top:50%;transform:translateY(-50%);
                                color:#7F8C8D;font-size:18px;">search</mat-icon>
             </div>
-            <select [(ngModel)]="filterStatus" (change)="applyFilter()"
-                    style="padding:10px 14px;border:1px solid #ddd;border-radius:8px;
-                           font-size:13px;outline:none;min-width:160px;">
-              <option value="">Toutes</option>
-              <option value="pending">En attente</option>
-              <option value="delivered">Délivrées</option>
-            </select>
+            <mat-form-field appearance="outline" style="min-width:180px" subscriptSizing="dynamic">
+              <mat-label>Statut</mat-label>
+              <mat-select [(ngModel)]="filterStatus" (selectionChange)="applyFilter()">
+                <mat-option value="">Toutes</mat-option>
+                <mat-option value="pending">En attente</mat-option>
+                <mat-option value="delivered">Délivrées</mat-option>
+              </mat-select>
+            </mat-form-field>
           </div>
           <div style="margin-top:8px;font-size:12px;color:#7F8C8D;">
             {{dataSource.filteredData.length}} ordonnance(s)

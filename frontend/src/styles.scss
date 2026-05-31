@@ -167,6 +167,11 @@ mat-card {
 
 .mat-mdc-select-arrow { color: var(--text-secondary) !important; }
 .mat-mdc-form-field-infix { min-height: 48px; }
+.mat-mdc-select-panel { border-radius: 10px !important; box-shadow: 0 4px 24px rgba(0,0,0,0.12) !important; }
+.mat-mdc-option { font-size: 13px !important; min-height: 42px !important; }
+.mat-mdc-option.mdc-list-item--selected { background: rgba(27,110,79,0.08) !important; }
+.mat-mdc-select-arrow-wrapper { padding-right: 4px; }
+.mat-mdc-select-value { font-size: 13px; color: #2C3E50; }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 /* BADGES RÃ”LE                                     */

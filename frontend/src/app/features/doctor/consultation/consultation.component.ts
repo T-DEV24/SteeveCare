@@ -1,7 +1,7 @@
 // src/app/features/doctor/consultation/consultation.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -36,7 +36,7 @@ interface Appointment {
   motif: string;
 }
 
-interface Pharmacy { id: number; nom: string; prenom?: string; }
+interface Pharmacy { id: number; nom: string; prenom?: string; ville?: string; }
 
 interface MedicalRecord {
   groupeSanguin?: string;
@@ -65,6 +65,7 @@ interface PreviousConsultation {
     CommonModule,
     RouterModule,
     ReactiveFormsModule,
+    FormsModule,
     InitialsPipe,
     DateFrPipe,
     SidebarComponent,
@@ -211,12 +212,11 @@ interface PreviousConsultation {
                         </div>
                       </div>
 
-                      <mat-form-field appearance="outline">
-                        <mat-label>Pharmacie destinataire</mat-label>
-                        <mat-select formControlName="selectedPharmacyId">
-                          <mat-option [value]="null">-- Choisir plus tard --</mat-option>
-                          <mat-option *ngFor="let p of pharmacies; trackBy: trackByItem" [value]="p.id">
-                            {{p.nom}}
+                      <mat-form-field appearance="outline" style="width:100%">
+                        <mat-label>Pharmacie</mat-label>
+                        <mat-select [(ngModel)]="selectedPharmacyId" [ngModelOptions]="{standalone: true}">
+                          <mat-option *ngFor="let ph of pharmacies; trackBy: trackByItem" [value]="ph.id">
+                            {{ph.nom}} — {{ph.ville || 'Ville non renseignée'}}
                           </mat-option>
                         </mat-select>
                       </mat-form-field>
@@ -453,7 +453,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   today = new Date();
 
   appointment: Appointment | null = null;
-  pharmacies: { id: number; nom: string }[] = [];
+  pharmacies: Pharmacy[] = [];
   medicalRecord: MedicalRecord | null = null;
   previousConsultations: PreviousConsultation[] = [];
 
@@ -528,6 +528,10 @@ export class ConsultationComponent implements OnInit, OnDestroy {
 
   get selectedPharmacyId(): number | null {
     return this.consultationForm.get('selectedPharmacyId')?.value ?? null;
+  }
+
+  set selectedPharmacyId(value: number | null) {
+    this.consultationForm.get('selectedPharmacyId')?.setValue(value);
   }
 
   get bloodType(): string {
@@ -664,7 +668,8 @@ export class ConsultationComponent implements OnInit, OnDestroy {
         next: (pharmacies) => {
           this.pharmacies = pharmacies.map(p => ({
             id: p.id,
-            nom: p.prenom ? `${p.prenom} ${p.nom}` : p.nom
+            nom: p.prenom ? `${p.prenom} ${p.nom}` : p.nom,
+            ville: p.ville
           }));
         }
       });
