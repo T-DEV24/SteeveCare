@@ -9,46 +9,27 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Appointment {
   id: number; doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
   dateHeure: string; type: string; statut: string;
 }
 
+interface PrescriptionPreview {
+  id: number; medicaments: string; medecinNom?: string; createdAt?: string; codeRetrait?: string;
+}
+
 @Component({
   selector: 'app-patient-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, MatIconModule, MatButtonModule,
             MatCardModule, MatProgressSpinnerModule, MatTooltipModule],
   template: `
     <div style="display:flex;min-height:100vh;">
 
       <!-- SIDEBAR -->
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item active" routerLink="/patient/dashboard">
-            <mat-icon>home</mat-icon> Accueil
-          </a>
-          <a class="nav-item" routerLink="/patient/doctors">
-            <mat-icon>search</mat-icon> Trouver un médecin
-          </a>
-          <a class="nav-item" routerLink="/patient/appointments">
-            <mat-icon>event</mat-icon> Mes rendez-vous
-          </a>
-          <a class="nav-item" routerLink="/patient/medical-record">
-            <mat-icon>folder_shared</mat-icon> Dossier médical
-          </a>
-          <a class="nav-item" routerLink="/patient/messages">
-            <mat-icon>chat</mat-icon> Messagerie
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'patient'" [activeRoute]="'/patient/dashboard'"></app-sidebar>
 
       <!-- CONTENU -->
       <main class="main-content" style="flex:1;position:relative;">
@@ -90,6 +71,58 @@ interface Appointment {
             </div>
           </a>
         </div>
+
+        <!-- Graphique RDV 30 jours -->
+        <mat-card style="padding:24px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+            <h2 style="font-size:16px;font-weight:600;color:#1A5276;margin:0;">
+              📊 Rendez-vous des 30 derniers jours
+            </h2>
+            <span style="font-size:12px;color:#7F8C8D;">{{appointmentsLast30Total}} RDV</span>
+          </div>
+          <div style="height:180px;display:flex;align-items:flex-end;gap:6px;
+                      padding:12px;background:#F8FAFC;border-radius:12px;">
+            <div *ngFor="let bar of appointmentChart"
+                 style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;">
+              <div [style.height.%]="bar.height"
+                   [title]="bar.label + ' : ' + bar.count + ' RDV'"
+                   style="width:100%;min-height:4px;background:linear-gradient(180deg,#27AE60,#1A5276);
+                          border-radius:6px 6px 2px 2px;transition:height .25s ease;"></div>
+              <span style="font-size:9px;color:#7F8C8D;transform:rotate(-45deg);white-space:nowrap;">
+                {{bar.shortLabel}}
+              </span>
+            </div>
+          </div>
+        </mat-card>
+
+        <!-- Dernières ordonnances -->
+        <mat-card style="padding:24px;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <h2 style="font-size:16px;font-weight:600;color:#1A5276;margin:0;">
+              💊 Dernières ordonnances
+            </h2>
+            <a routerLink="/patient/medical-record"
+               style="font-size:13px;color:#2980B9;text-decoration:none;font-weight:500;">
+              Voir dossier médical →
+            </a>
+          </div>
+          <div *ngIf="recentPrescriptions.length > 0" style="display:flex;flex-direction:column;gap:10px;">
+            <div *ngFor="let p of recentPrescriptions"
+                 style="display:flex;align-items:center;gap:12px;background:#F5F6FA;border-radius:10px;padding:12px 14px;">
+              <mat-icon style="color:#27AE60;">receipt_long</mat-icon>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;color:#2C3E50;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  {{p.medicaments}}
+                </div>
+                <div style="font-size:11px;color:#7F8C8D;">{{p.medecinNom || 'Médecin'}} · {{formatShortDate(p.createdAt)}}</div>
+              </div>
+              <span *ngIf="p.codeRetrait" style="font-family:monospace;font-size:11px;color:#1A5276;">{{p.codeRetrait}}</span>
+            </div>
+          </div>
+          <div *ngIf="recentPrescriptions.length === 0" style="color:#7F8C8D;font-size:13px;background:#F5F6FA;border-radius:10px;padding:16px;">
+            Aucune ordonnance récente à afficher. Consultez votre dossier médical pour plus de détails.
+          </div>
+        </mat-card>
 
         <!-- Prochains rendez-vous -->
         <mat-card style="padding:24px;">
@@ -153,6 +186,7 @@ interface Appointment {
 
         <!-- FAB Prendre RDV — MatTooltipModule ajouté dans imports -->
         <button mat-fab routerLink="/patient/doctors"
+                class="pulse-fab"
                 matTooltip="Prendre un rendez-vous"
                 style="position:fixed;bottom:32px;right:32px;
                        background:#27AE60;color:white;z-index:50;">
@@ -160,7 +194,15 @@ interface Appointment {
         </button>
       </main>
     </div>
-  `
+  `,
+  styles: [`
+    @keyframes fabPulse {
+      0% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.6); transform: scale(1); }
+      70% { box-shadow: 0 0 0 16px rgba(39, 174, 96, 0); transform: scale(1.04); }
+      100% { box-shadow: 0 0 0 0 rgba(39, 174, 96, 0); transform: scale(1); }
+    }
+    .pulse-fab { animation: fabPulse 1.8s infinite; }
+  `]
 })
 export class PatientDashboardComponent implements OnInit {
   auth    = inject(AuthService);
@@ -168,6 +210,8 @@ export class PatientDashboardComponent implements OnInit {
 
   loadingRdv   = true;
   upcomingRdv: Appointment[] = [];
+  allAppointments: Appointment[] = [];
+  recentPrescriptions: PrescriptionPreview[] = [];
 
   actionCards = [
     {
@@ -195,6 +239,7 @@ export class PatientDashboardComponent implements OnInit {
   ngOnInit(): void {
     this.api.get<Appointment[]>('/api/appointments/patient/me').subscribe({
       next: (data) => {
+        this.allAppointments = data;
         this.upcomingRdv = data
           .filter(r => r.statut === 'PENDING' || r.statut === 'CONFIRMED')
           .sort((a, b) => new Date(a.dateHeure).getTime() - new Date(b.dateHeure).getTime())
@@ -203,10 +248,50 @@ export class PatientDashboardComponent implements OnInit {
       },
       error: () => { this.loadingRdv = false; }
     });
+
+    this.api.get<PrescriptionPreview[]>('/api/prescriptions/patient/me').subscribe({
+      next: (data) => {
+        this.recentPrescriptions = data
+          .sort((a, b) => new Date(b.createdAt ?? '').getTime() - new Date(a.createdAt ?? '').getTime())
+          .slice(0, 3);
+      },
+      error: () => { this.recentPrescriptions = []; }
+    });
+  }
+
+  get appointmentChart() {
+    const today = new Date();
+    const days = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (29 - i));
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+    const counts = days.map(day => this.allAppointments.filter(r => {
+      const rdvDate = new Date(r.dateHeure);
+      rdvDate.setHours(0, 0, 0, 0);
+      return rdvDate.getTime() === day.getTime();
+    }).length);
+    const max = Math.max(...counts, 1);
+    return days.map((day, i) => ({
+      count: counts[i],
+      height: Math.max(6, (counts[i] / max) * 100),
+      label: day.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+      shortLabel: day.getDate().toString().padStart(2, '0')
+    }));
+  }
+
+  get appointmentsLast30Total(): number {
+    return this.appointmentChart.reduce((sum, bar) => sum + bar.count, 0);
   }
 
   getInitials(nom: string, prenom: string): string {
     return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
+  }
+
+  formatShortDate(d?: string): string {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   }
 
   formatDateFr(d: string): string {

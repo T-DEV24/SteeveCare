@@ -144,11 +144,6 @@ export const routes: Routes = [
         .then(m => m.CreateUserComponent)
   },
 
-  // ── 404 Page (wildcard en dernier) ─────────────────────────────────────────
-  {
-    path: '**',
-    loadComponent: () =>
-      import('./features/not-found/not-found.component')
-        .then(m => m.NotFoundComponent)
-  }
+  // ── Redirection wildcard (toujours en dernier) ─────────────────────────────
+  { path: '**', redirectTo: '/' }
 ];

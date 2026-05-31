@@ -1,4 +1,4 @@
-﻿// src/app/features/patient/messages/messages.component.ts
+// src/app/features/patient/messages/messages.component.ts
 import { Component, OnInit, inject, AfterViewChecked, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Contact { id: number; nom: string; prenom: string; specialite?: string; }
 interface Message  { id: number; senderId: number; contenu: string; timestamp: string; isRead: boolean; }
@@ -15,37 +16,11 @@ interface Message  { id: number; senderId: number; contenu: string; timestamp: s
 @Component({
   selector: 'app-messages',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule,
             MatButtonModule, MatProgressSpinnerModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo">
-          <span class="logo-icon">ðŸ’Š</span> SteevaCare
-        </div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/patient/dashboard">
-            <mat-icon>home</mat-icon> Accueil
-          </a>
-          <a class="nav-item" routerLink="/patient/doctors">
-            <mat-icon>search</mat-icon> Trouver un mÃ©decin
-          </a>
-          <a class="nav-item" routerLink="/patient/appointments">
-            <mat-icon>event</mat-icon> Mes rendez-vous
-          </a>
-          <a class="nav-item" routerLink="/patient/medical-record">
-            <mat-icon>folder_shared</mat-icon> Dossier mÃ©dical
-          </a>
-          <a class="nav-item active" routerLink="/patient/messages">
-            <mat-icon>chat</mat-icon> Messagerie
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> DÃ©connexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'patient'" [activeRoute]="'/patient/messages'"></app-sidebar>
 
       <main class="main-content" style="flex:1;padding:0;">
         <div style="display:flex;height:100vh;">
@@ -54,7 +29,7 @@ interface Message  { id: number; senderId: number; contenu: string; timestamp: s
           <div style="width:300px;border-right:1px solid #EEF0F4;background:white;
                       display:flex;flex-direction:column;flex-shrink:0;">
             <div style="padding:20px 16px;border-bottom:1px solid #EEF0F4;">
-              <h2 style="font-size:16px;font-weight:600;color:#1A5276;">ðŸ’¬ Messagerie</h2>
+              <h2 style="font-size:16px;font-weight:600;color:#1A5276;">💬 Messagerie</h2>
             </div>
             <div style="flex:1;overflow-y:auto;">
               <div *ngFor="let c of contacts"
@@ -75,8 +50,8 @@ interface Message  { id: number; senderId: number; contenu: string; timestamp: s
               </div>
               <div *ngIf="contacts.length === 0"
                    style="padding:24px;text-align:center;color:#7F8C8D;font-size:13px;">
-                Aucun mÃ©decin contactÃ©.<br>
-                <small>Prenez un rendez-vous pour dÃ©marrer une conversation.</small>
+                Aucun médecin contacté.<br>
+                <small>Prenez un rendez-vous pour démarrer une conversation.</small>
               </div>
             </div>
           </div>
@@ -84,12 +59,12 @@ interface Message  { id: number; senderId: number; contenu: string; timestamp: s
           <!-- Zone de chat -->
           <div style="flex:1;display:flex;flex-direction:column;background:#F5F6FA;">
 
-            <!-- Aucun contact sÃ©lectionnÃ© -->
+            <!-- Aucun contact sélectionné -->
             <div *ngIf="!selectedContact"
                  style="flex:1;display:flex;align-items:center;justify-content:center;
                         flex-direction:column;gap:12px;color:#7F8C8D;">
               <mat-icon style="font-size:64px;width:64px;height:64px;color:#BDC3C7;">chat</mat-icon>
-              <p style="font-size:15px;">SÃ©lectionnez un mÃ©decin pour commencer</p>
+              <p style="font-size:15px;">Sélectionnez un médecin pour commencer</p>
             </div>
 
             <!-- Conversation -->
@@ -142,7 +117,7 @@ interface Message  { id: number; senderId: number; contenu: string; timestamp: s
                           display:flex;gap:10px;align-items:flex-end;">
                 <textarea [(ngModel)]="newMessage"
                           rows="1"
-                          placeholder="Ã‰crire un message..."
+                          placeholder="Écrire un message..."
                           (keydown.enter)="sendMessage($event)"
                           style="flex:1;padding:10px 14px;border:1px solid #ddd;
                                  border-radius:20px;font-size:13px;resize:none;

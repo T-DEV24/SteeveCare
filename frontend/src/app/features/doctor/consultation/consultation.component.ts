@@ -13,35 +13,24 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string; patientId: number;
   doctorNom: string; doctorPrenom: string; doctorSpecialite: string;
   dateHeure: string; type: string; statut: string; motif: string;
 }
-interface Pharmacy { id: number; nom: string; prenom: string; }
+interface Pharmacy { id: number; nom: string; prenom?: string; }
 
 @Component({
   selector: 'app-consultation',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule,
             MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#0B5345;">
-        <div class="sidebar-logo"><span class="logo-icon">🩺</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/doctor/dashboard"><mat-icon>dashboard</mat-icon> Tableau de bord</a>
-          <a class="nav-item" routerLink="/doctor/appointments"><mat-icon>calendar_today</mat-icon> Rendez-vous</a>
-          <a class="nav-item" routerLink="/doctor/messages"><mat-icon>chat</mat-icon> Messagerie</a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/consultation'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
 
@@ -231,12 +220,13 @@ export class ConsultationComponent implements OnInit {
       error: () => { this.loading = false; }
     });
 
-    // Charger les pharmacies
-    this.api.get<any[]>('/api/admin/users').subscribe({
-      next: (users) => {
-        this.pharmacies = users
-          .filter(u => u.role === 'PHARMACY' && u.status === 'ACTIVE')
-          .map(u => ({ id: u.id, nom: `${u.prenom} ${u.nom}` }));
+    // Charger uniquement les pharmacies actives via l'endpoint public dédié.
+    this.api.get<Pharmacy[]>('/api/pharmacies/active').subscribe({
+      next: (pharmacies) => {
+        this.pharmacies = pharmacies.map(p => ({
+          id: p.id,
+          nom: p.prenom ? `${p.prenom} ${p.nom}` : p.nom
+        }));
       }
     });
   }
