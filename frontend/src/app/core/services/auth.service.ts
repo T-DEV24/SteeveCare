@@ -55,6 +55,13 @@ export class AuthService {
 
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(response));
     this._currentUser.set(response);
+
+    const returnUrl = this.getSafeReturnUrl();
+    if (returnUrl) {
+      this.router.navigateByUrl(returnUrl);
+      return;
+    }
+
     this.redirectByRole(response.role);
   }
 
@@ -64,10 +71,13 @@ export class AuthService {
   }
 
   /** Déconnexion : supprime systématiquement le JWT persistant. */
-  logout(): void {
+  logout(redirectToLogin = true): void {
     localStorage.removeItem(this.STORAGE_KEY);
     this._currentUser.set(null);
-    this.router.navigate(['/auth/login']);
+
+    if (redirectToLogin) {
+      this.router.navigate(['/auth/login']);
+    }
   }
 
   /** Vérifie l'expiration du JWT à partir du claim exp (en secondes). */
@@ -98,6 +108,13 @@ export class AuthService {
     const userRole = this._currentUser()?.role;
     if (!userRole) return false;
     return roles.includes(userRole);
+  }
+
+  private getSafeReturnUrl(): string | null {
+    const returnUrl = this.router.parseUrl(this.router.url).queryParams['returnUrl'];
+    return typeof returnUrl === 'string' && returnUrl.startsWith('/') && !returnUrl.startsWith('//')
+      ? returnUrl
+      : null;
   }
 
   /** Redirection selon le rôle */
