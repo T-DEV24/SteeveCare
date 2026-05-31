@@ -1,10 +1,11 @@
 // src/app/features/home/home.component.ts
-import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-home',
@@ -24,11 +25,11 @@ import { CommonModule } from '@angular/common';
           </span>
         </div>
         <nav class="home-header-actions" style="display:flex;gap:12px;align-items:center;">
-          <button mat-stroked-button color="primary" routerLink="/auth/login"
+          <button mat-stroked-button color="primary" type="button" (click)="goToLogin()"
                   style="border-radius:8px;">
             Se connecter
           </button>
-          <button mat-raised-button color="primary" routerLink="/auth/register"
+          <button mat-raised-button color="primary" type="button" (click)="goToRegister()"
                   style="border-radius:8px;background:#1A5276;">
             S'inscrire gratuitement
           </button>
@@ -49,13 +50,13 @@ import { CommonModule } from '@angular/common';
           en ligne et accédez à des soins de qualité partout au Cameroun.
         </p>
         <div class="home-cta-row" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-          <button mat-raised-button routerLink="/auth/register"
+          <button mat-raised-button type="button" (click)="goToRegister()"
                   style="background:white;color:#1A5276;font-weight:600;
                          padding:12px 32px;font-size:16px;border-radius:10px;">
             <mat-icon style="margin-right:8px;">rocket_launch</mat-icon>
             Commencer maintenant
           </button>
-          <button mat-stroked-button routerLink="/auth/login"
+          <button mat-stroked-button type="button" (click)="goToLogin()"
                   style="border-color:rgba(255,255,255,0.6);color:white;
                          padding:12px 28px;font-size:16px;border-radius:10px;">
             J'ai déjà un compte
@@ -124,7 +125,7 @@ import { CommonModule } from '@angular/common';
       <p style="font-size:16px;opacity:0.9;margin-bottom:32px;">
         Rejoignez des milliers de patients qui font confiance à SteevaCare
       </p>
-      <button mat-raised-button routerLink="/auth/register"
+      <button mat-raised-button type="button" (click)="goToRegister()"
               style="background:white;color:#1A5276;font-weight:700;
                      padding:14px 40px;font-size:16px;border-radius:10px;">
         Créer mon compte gratuit
@@ -158,7 +159,39 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class HomeComponent {
+export class HomeComponent implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
+  ngOnInit(): void {
+    this.redirectAuthenticatedUser();
+  }
+
+  goToLogin(): void {
+    if (this.redirectAuthenticatedUser()) return;
+    this.router.navigate(['/auth/login']);
+  }
+
+  goToRegister(): void {
+    if (this.redirectAuthenticatedUser()) return;
+    this.router.navigate(['/auth/register']);
+  }
+
+  private redirectAuthenticatedUser(): boolean {
+    const token = this.authService.token();
+    const user = this.authService.currentUser();
+
+    if (!user || !token) return false;
+
+    if (this.authService.isTokenExpired(token)) {
+      this.authService.logout(false);
+      return false;
+    }
+
+    this.authService.redirectByRole(user.role);
+    return true;
+  }
+
   services = [
     {
       icon: 'videocam', title: 'Téléconsultation Vidéo',
