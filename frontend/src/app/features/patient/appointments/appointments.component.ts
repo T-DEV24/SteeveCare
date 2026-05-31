@@ -89,7 +89,6 @@ interface Appointment {
                         {{rdv.doctorSpecialite}}
                       </div>
                     </div>
-                    <!-- CORRECTION : [class] binding au lieu de class="badge-rdv-{{...}}" -->
                     <span [class]="'badge-rdv-' + rdv.statut">{{rdv.statut}}</span>
                   </div>
 
