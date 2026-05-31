@@ -69,7 +69,7 @@ import { trigger, state, style, animate, transition, keyframes } from '@angular/
                     margin:0 auto 24px;padding:18px 24px;
                     width:min(320px,82vw);
                     box-shadow:0 18px 44px rgba(0,0,0,0.32);">
-          <img src="assets/brand/steevacare-logo.svg"
+          <img src="assets/brand/steevacare-logo.png"
                alt="SteevaCare - Télémédecine pour l'Afrique"
                style="display:block;width:100%;height:auto;">
         </div>
