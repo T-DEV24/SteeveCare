@@ -107,6 +107,7 @@ export class SidebarComponent {
     const links: Record<SidebarRole, NavLink[]> = {
       admin: [
         { icon: 'dashboard', label: 'Tableau de bord', route: '/admin/dashboard' },
+        { icon: 'analytics', label: 'Analytics', route: '/admin/analytics' },
         { icon: 'people', label: 'Utilisateurs', route: '/admin/users' },
         { icon: 'person_add', label: 'Créer un compte', route: '/admin/create-user' },
         { icon: 'account_circle', label: 'Mon profil', route: '/profile' },

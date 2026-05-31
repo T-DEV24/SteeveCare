@@ -107,6 +107,9 @@ export const routes: Routes = [
     protectedChildRoute('dashboard', adminRoles, () =>
       import('./features/admin/dashboard/dashboard.component').then(m => m.AdminDashboardComponent)
     ),
+    protectedChildRoute('analytics', adminRoles, () =>
+      import('./features/admin/analytics/analytics.component').then(m => m.AnalyticsComponent)
+    ),
     protectedChildRoute('users', adminRoles, () =>
       import('./features/admin/users/users.component').then(m => m.UserManagementComponent)
     ),
