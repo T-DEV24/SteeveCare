@@ -63,6 +63,38 @@ html, body {
 
 a { text-decoration: none; color: inherit; }
 
+a, button, .nav-item, mat-card { transition: all 0.2s ease; }
+
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:#F5F6FA; }
+::-webkit-scrollbar-thumb { background:#BDC3C7; border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:#7F8C8D; }
+
+mat-card:hover {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+  transform: translateY(-2px);
+}
+
+button[mat-raised-button]:active { transform:scale(0.97); }
+button:disabled,
+button[disabled],
+.mat-mdc-button-disabled {
+  opacity:0.5 !important;
+  cursor:not-allowed !important;
+}
+
+.empty-state {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:64px 32px;
+  color:#BDC3C7;
+  gap:12px;
+}
+.empty-state mat-icon { font-size:64px; width:64px; height:64px; }
+.empty-state h3 { font-size:16px; color:#7F8C8D; font-weight:500; }
+
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 /* SIDEBAR PARTAGÃ‰E                                */
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -96,6 +128,7 @@ a { text-decoration: none; color: inherit; }
 .sidebar-nav { flex: 1; padding: 12px 0; }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -112,16 +145,26 @@ a { text-decoration: none; color: inherit; }
   mat-icon { font-size: 20px; width: 20px; height: 20px; }
 
   &:hover {
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.15);
     color: white;
-    border-left-color: rgba(39,174,96,0.6);
+    transform: translateX(4px);
   }
 
   &.active {
-    background: rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.18);
     color: white;
     font-weight: 500;
-    border-left-color: #27AE60;
+  }
+
+  &.active::before {
+    content:'';
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    width:4px;
+    border-radius:0 4px 4px 0;
+    background:white;
   }
 }
 

@@ -37,6 +37,7 @@ export interface NavLink {
            class="nav-item"
            [class.active]="link.route === activeRoute"
            [routerLink]="link.route"
+           [attr.title]="link.label"
            (click)="mobileOpen = false"
            style="position:relative;">
           <mat-icon>{{link.icon}}</mat-icon>
@@ -48,7 +49,7 @@ export interface NavLink {
       </nav>
 
       <div class="sidebar-footer">
-        <button mat-button type="button" class="nav-item" (click)="auth.logout()">
+        <button mat-button type="button" class="nav-item" title="Déconnexion" (click)="auth.logout()">
           <mat-icon>logout</mat-icon> Déconnexion
         </button>
       </div>
