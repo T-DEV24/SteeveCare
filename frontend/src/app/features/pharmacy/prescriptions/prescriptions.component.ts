@@ -10,9 +10,11 @@ import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Prescription {
   id: number; medicaments: string; posologie: string; instructions: string;
@@ -24,27 +26,12 @@ interface Prescription {
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatTableModule, MatPaginatorModule, MatSelectModule,
             MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#6C3483;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/pharmacy/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item active" routerLink="/pharmacy/prescriptions">
-            <mat-icon>description</mat-icon> Ordonnances
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'pharmacy'" [activeRoute]="'/pharmacy/prescriptions'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -170,7 +157,7 @@ interface Prescription {
 export class PrescriptionsComponent implements OnInit {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
@@ -210,10 +197,10 @@ export class PrescriptionsComponent implements OnInit {
         const idx = this.all.findIndex(x => x.id === p.id);
         if (idx >= 0) this.all[idx] = updated;
         this.applyFilter();
-        this.snackBar.open('Ordonnance délivrée ✅', '✕', { duration: 3000 });
+        this.notification.success('Ordonnance délivrée ✅', 3000);
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
       }
     });
   }

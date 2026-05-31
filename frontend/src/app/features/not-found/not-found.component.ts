@@ -1,5 +1,5 @@
 // src/app/features/not-found/not-found.component.ts
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 @Component({
   selector: 'app-not-found',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, MatButtonModule, MatIconModule],
   template: `
     <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;

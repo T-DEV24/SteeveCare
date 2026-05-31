@@ -1,9 +1,12 @@
 // src/app/shared/components/sidebar/sidebar.component.ts
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, RouterLinkActive } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { AuthService } from '../../../core/services/auth.service';
+
+export type SidebarRole = 'admin' | 'doctor' | 'patient' | 'pharmacy';
 
 export interface NavLink {
   icon: string;
@@ -14,50 +17,77 @@ export interface NavLink {
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatIconModule],
+  imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule],
   template: `
-    <aside class="sidebar" [style.background]="bgColor">
-
-      <!-- Logo -->
+    <button mat-icon-button
+            type="button"
+            class="sidebar-toggle"
+            [attr.aria-label]="mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'"
+            [attr.aria-expanded]="mobileOpen"
+            (click)="mobileOpen = !mobileOpen">
+      <mat-icon>{{mobileOpen ? 'close' : 'menu'}}</mat-icon>
+    </button>
+    <aside class="sidebar" [class.mobile-open]="mobileOpen" [style.background]="bgColor">
       <div class="sidebar-logo">
         <span class="logo-icon">{{logoEmoji}}</span> SteevaCare
       </div>
 
-      <!-- Navigation -->
       <nav class="sidebar-nav">
-        <a *ngFor="let link of navLinks"
+        <a *ngFor="let link of navLinks; trackBy: trackByItem"
            class="nav-item"
+           [class.active]="link.route === activeRoute"
            [routerLink]="link.route"
-           routerLinkActive="active"
-           [routerLinkActiveOptions]="{ exact: link.route.endsWith('dashboard') }">
+           (click)="mobileOpen = false"
+           style="position:relative;">
           <mat-icon>{{link.icon}}</mat-icon>
           {{link.label}}
+          <span *ngIf="badgeCounts[link.route] > 0"
+                class="sidebar-badge-pulse"
+                style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
+                       background:#E74C3C;color:white;border-radius:999px;min-width:20px;
+                       height:20px;padding:0 6px;font-size:11px;font-weight:700;
+                       display:flex;align-items:center;justify-content:center;">
+            {{badgeCounts[link.route]}}
+          </span>
         </a>
       </nav>
 
-      <!-- Déconnexion -->
       <div class="sidebar-footer">
-        <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
+        <button mat-button type="button" class="nav-item" (click)="auth.logout()">
           <mat-icon>logout</mat-icon> Déconnexion
-        </a>
+        </button>
       </div>
     </aside>
-  `
+  `,
+  styles: [`
+    @keyframes sidebarBadgePulse {
+      0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.65); }
+      70% { box-shadow: 0 0 0 8px rgba(231, 76, 60, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+    }
+
+    .sidebar-badge-pulse {
+      animation: sidebarBadgePulse 1.4s infinite;
+    }
+  `]
 })
 export class SidebarComponent {
-  /** Rôle : 'admin' | 'doctor' | 'patient' | 'pharmacy' */
-  @Input() role: 'admin' | 'doctor' | 'patient' | 'pharmacy' = 'patient';
+  mobileOpen = false;
 
-  auth = inject(AuthService);
+  @Input() role: SidebarRole = 'patient';
+  @Input() activeRoute = '';
+  @Input() badgeCounts: Record<string, number> = {};
+
+  protected auth = inject(AuthService);
 
   get bgColor(): string {
-    const colors: Record<string, string> = {
-      admin:    '#1A5276',
-      doctor:   '#0B5345',
-      patient:  '#1A5276',
+    const colors: Record<SidebarRole, string> = {
+      admin: '#1A5276',
+      doctor: '#0B5345',
+      patient: '#1A5276',
       pharmacy: '#6C3483',
     };
-    return colors[this.role] ?? '#1A5276';
+    return colors[this.role];
   }
 
   get logoEmoji(): string {
@@ -65,29 +95,34 @@ export class SidebarComponent {
   }
 
   get navLinks(): NavLink[] {
-    const links: Record<string, NavLink[]> = {
-      patient: [
-        { icon: 'home',          label: 'Accueil',           route: '/patient/dashboard' },
-        { icon: 'search',        label: 'Trouver un médecin', route: '/patient/doctors' },
-        { icon: 'event',         label: 'Mes rendez-vous',    route: '/patient/appointments' },
-        { icon: 'folder_shared', label: 'Dossier médical',    route: '/patient/medical-record' },
-        { icon: 'chat',          label: 'Messagerie',         route: '/patient/messages' },
+    const links: Record<SidebarRole, NavLink[]> = {
+      admin: [
+        { icon: 'dashboard', label: 'Tableau de bord', route: '/admin/dashboard' },
+        { icon: 'people', label: 'Utilisateurs', route: '/admin/users' },
+        { icon: 'person_add', label: 'Créer un compte', route: '/admin/create-user' },
       ],
       doctor: [
-        { icon: 'dashboard',      label: 'Tableau de bord', route: '/doctor/dashboard' },
-        { icon: 'calendar_today', label: 'Rendez-vous',     route: '/doctor/appointments' },
-        { icon: 'chat',           label: 'Messagerie',       route: '/doctor/messages' },
+        { icon: 'dashboard', label: 'Tableau de bord', route: '/doctor/dashboard' },
+        { icon: 'calendar_today', label: 'Rendez-vous', route: '/doctor/appointments' },
+        { icon: 'chat', label: 'Messagerie', route: '/doctor/messages' },
       ],
-      admin: [
-        { icon: 'dashboard',          label: 'Tableau de bord', route: '/admin/dashboard' },
-        { icon: 'people',             label: 'Utilisateurs',     route: '/admin/users' },
-        { icon: 'person_add',         label: 'Créer un compte',  route: '/admin/create-user' },
+      patient: [
+        { icon: 'home', label: 'Accueil', route: '/patient/dashboard' },
+        { icon: 'search', label: 'Trouver un médecin', route: '/patient/doctors' },
+        { icon: 'event', label: 'Mes rendez-vous', route: '/patient/appointments' },
+        { icon: 'folder_shared', label: 'Dossier médical', route: '/patient/medical-record' },
+        { icon: 'chat', label: 'Messagerie', route: '/patient/messages' },
       ],
       pharmacy: [
-        { icon: 'dashboard',  label: 'Tableau de bord', route: '/pharmacy/dashboard' },
-        { icon: 'description', label: 'Ordonnances',    route: '/pharmacy/prescriptions' },
+        { icon: 'dashboard', label: 'Tableau de bord', route: '/pharmacy/dashboard' },
+        { icon: 'description', label: 'Ordonnances', route: '/pharmacy/prescriptions' },
       ],
     };
-    return links[this.role] ?? [];
+    return links[this.role];
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }

@@ -7,9 +7,13 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string;
@@ -20,29 +24,11 @@ interface Appointment {
 @Component({
   selector: 'app-doctor-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [InitialsPipe, DateFrPipe, SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#0B5345;">
-        <div class="sidebar-logo"><span class="logo-icon">🩺</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item active" routerLink="/doctor/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item" routerLink="/doctor/appointments">
-            <mat-icon>calendar_today</mat-icon> Rendez-vous
-          </a>
-          <a class="nav-item" routerLink="/doctor/messages">
-            <mat-icon>chat</mat-icon> Messagerie
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/dashboard'" [badgeCounts]="doctorSidebarBadges"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -90,6 +76,32 @@ interface Appointment {
             </div>
           </div>
 
+          <!-- Tendance hebdomadaire -->
+          <mat-card style="padding:20px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+              <div>
+                <h2 style="font-size:16px;font-weight:600;color:#2C3E50;margin:0 0 6px;">Activité hebdomadaire</h2>
+                <p style="font-size:12px;color:#7F8C8D;margin:0;">Comparaison des rendez-vous créés cette semaine</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:18px;">
+                <div style="text-align:right;">
+                  <div style="font-size:12px;color:#7F8C8D;">Cette semaine</div>
+                  <div style="font-size:26px;font-weight:700;color:#0B5345;">{{currentWeekCount}}</div>
+                </div>
+                <mat-icon [style.color]="weekTrend >= 0 ? '#27AE60' : '#E74C3C'" style="font-size:30px;width:30px;height:30px;">
+                  {{weekTrend >= 0 ? 'trending_up' : 'trending_down'}}
+                </mat-icon>
+                <div>
+                  <div style="font-size:12px;color:#7F8C8D;">Semaine précédente</div>
+                  <div style="font-size:18px;font-weight:700;color:#7F8C8D;">{{previousWeekCount}}</div>
+                  <div [style.color]="weekTrend >= 0 ? '#27AE60' : '#E74C3C'" style="font-size:12px;font-weight:600;">
+                    {{weekTrend >= 0 ? '+' : ''}}{{weekTrend}} RDV
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card>
+
           <!-- En attente -->
           <mat-card style="padding:24px;margin-bottom:20px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
@@ -110,21 +122,21 @@ interface Appointment {
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
-              <div *ngFor="let rdv of pending"
+              <div *ngFor="let rdv of pending; trackBy: trackByItem"
                    style="background:#F5F6FA;border-radius:10px;padding:16px;
                           border-left:4px solid #F39C12;">
                 <div style="display:flex;justify-content:space-between;
                             align-items:flex-start;gap:12px;">
                   <div style="display:flex;align-items:center;gap:12px;flex:1;">
                     <div class="avatar" style="background:#0B5345;flex-shrink:0;">
-                      {{getInitials(rdv.patientNom, rdv.patientPrenom)}}
+                      {{ rdv.patientNom | initials:rdv.patientPrenom }}
                     </div>
                     <div>
                       <div style="font-weight:600;">
                         {{rdv.patientPrenom}} {{rdv.patientNom}}
                       </div>
                       <div style="font-size:12px;color:#7F8C8D;">
-                        {{formatDateFr(rdv.dateHeure)}} —
+                        {{ rdv.dateHeure | dateFr }} —
                         {{rdv.type === 'VIDEO' ? '📹 Vidéo' : '💬 Message'}}
                       </div>
                       <p *ngIf="rdv.motif"
@@ -164,20 +176,20 @@ interface Appointment {
               <p>Aucun rendez-vous confirmé</p>
             </div>
             <div style="display:flex;flex-direction:column;gap:12px;">
-              <div *ngFor="let rdv of confirmed"
+              <div *ngFor="let rdv of confirmed; trackBy: trackByItem"
                    style="background:#F5F6FA;border-radius:10px;padding:16px;
                           border-left:4px solid #27AE60;display:flex;
                           align-items:center;justify-content:space-between;gap:12px;">
                 <div style="display:flex;align-items:center;gap:12px;">
                   <div class="avatar" style="background:#27AE60;">
-                    {{getInitials(rdv.patientNom, rdv.patientPrenom)}}
+                    {{ rdv.patientNom | initials:rdv.patientPrenom }}
                   </div>
                   <div>
                     <div style="font-weight:500;">
                       {{rdv.patientPrenom}} {{rdv.patientNom}}
                     </div>
                     <div style="font-size:12px;color:#7F8C8D;">
-                      {{formatDateFr(rdv.dateHeure)}}
+                      {{ rdv.dateHeure | dateFr }}
                     </div>
                   </div>
                 </div>
@@ -223,18 +235,41 @@ interface Appointment {
 export class DoctorDashboardComponent implements OnInit {
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
-  loading   = true;        // ← CORRECTION : loading ajouté
+  loading   = true;
   all: Appointment[] = [];
   actionLoading: number | null = null;
   showRejectDialog = false;
   rejectMotif = '';
   selectedRdv: Appointment | null = null;
 
-  get pending()   { return this.all.filter(a => a.statut === 'PENDING'); }
+  get pending() {
+    return this.all
+      .filter(a => a.statut === 'PENDING')
+      .sort((a, b) => new Date(a.dateHeure).getTime() - new Date(b.dateHeure).getTime());
+  }
   get confirmed() { return this.all.filter(a => a.statut === 'CONFIRMED'); }
   get completed() { return this.all.filter(a => a.statut === 'COMPLETED'); }
+
+  get doctorSidebarBadges(): Record<string, number> {
+    return { '/doctor/appointments': this.pending.length };
+  }
+
+  get currentWeekCount(): number {
+    return this.countAppointmentsBetween(this.startOfWeek(new Date()), new Date());
+  }
+
+  get previousWeekCount(): number {
+    const currentStart = this.startOfWeek(new Date());
+    const previousStart = new Date(currentStart);
+    previousStart.setDate(currentStart.getDate() - 7);
+    return this.countAppointmentsBetween(previousStart, currentStart);
+  }
+
+  get weekTrend(): number {
+    return this.currentWeekCount - this.previousWeekCount;
+  }
 
   ngOnInit(): void { this.load(); }
 
@@ -242,7 +277,10 @@ export class DoctorDashboardComponent implements OnInit {
     this.loading = true;
     this.api.get<Appointment[]>('/api/appointments/doctor/me').subscribe({
       next: (d) => { this.all = d; this.loading = false; },
-      error: () => { this.loading = false; }   // ← CORRECTION : gestion erreur
+      error: () => {
+        this.notification.error('Impossible de charger les rendez-vous', 4000);
+        this.loading = false;
+      }
     });
   }
 
@@ -250,11 +288,11 @@ export class DoctorDashboardComponent implements OnInit {
     this.actionLoading = rdv.id;
     this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CONFIRMED' }).subscribe({
       next: () => {
-        this.snackBar.open('Rendez-vous confirmé ✅', '✕', { duration: 3000 });
+        this.notification.success('Rendez-vous confirmé ✅', 3000);
         this.load(); this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
@@ -275,26 +313,35 @@ export class DoctorDashboardComponent implements OnInit {
       motifRejet: this.rejectMotif
     }).subscribe({
       next: () => {
-        this.snackBar.open('Rendez-vous refusé', '✕', { duration: 3000 });
+        this.notification.warning('Rendez-vous refusé', 3000);
         this.load(); this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
+  private startOfWeek(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay() || 7;
+    d.setDate(d.getDate() - day + 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
   }
 
-  formatDateFr(d: string): string {
-    if (!d) return '';
-    const date = new Date(d);
-    const mois = ['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
-    const h = date.getHours().toString().padStart(2, '0');
-    const m = date.getMinutes().toString().padStart(2, '0');
-    return `${date.getDate()} ${mois[date.getMonth()]} à ${h}h${m}`;
+  private countAppointmentsBetween(start: Date, end: Date): number {
+    return this.all.filter(a => {
+      const date = new Date(a.dateHeure);
+      return date >= start && date < end;
+    }).length;
   }
+
+
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
 }
