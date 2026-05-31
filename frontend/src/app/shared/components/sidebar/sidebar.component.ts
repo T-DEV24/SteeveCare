@@ -29,7 +29,7 @@ export interface NavLink {
     </button>
     <aside class="sidebar" [class.mobile-open]="mobileOpen" [style.background]="bgColor">
       <div class="sidebar-logo">
-        <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
+        <img src="assets/brand/steevacare-logo.png" alt="SteevaCare - Télémédecine pour l'Afrique">
       </div>
 
       <nav class="sidebar-nav">
