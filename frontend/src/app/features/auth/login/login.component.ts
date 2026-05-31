@@ -1,5 +1,5 @@
 // src/app/features/auth/login/login.component.ts
-import { Component, inject } from '@angular/core';
+import { Component, inject, isDevMode } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -97,7 +97,8 @@ import { AuthService, AuthResponse } from '../../../core/services/auth.service';
         </p>
 
         <!-- Comptes de démonstration -->
-        <details style="margin-top:20px;border:1px solid #EEF0F4;
+        <details *ngIf="showDemoAccounts"
+                 style="margin-top:20px;border:1px solid #EEF0F4;
                         border-radius:8px;padding:12px;">
           <summary style="cursor:pointer;font-size:12px;color:#7F8C8D;font-weight:500;">
             🔑 Comptes de démonstration
@@ -130,19 +131,21 @@ export class LoginComponent {
 
   loading      = false;
   showPassword = false;
+  readonly isProduction = !isDevMode();
+  readonly showDemoAccounts = !this.isProduction;
 
   form = this.fb.group({
     email:    ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]]
   });
 
-  demoAccounts = [
+  demoAccounts = this.showDemoAccounts ? [
     { role: 'Super Admin', email: 'superadmin@steevacare.cm', password: 'Admin@12345',   color: '#922B21' },
     { role: 'Admin',       email: 'admin@steevacare.cm',      password: 'Admin@12345',   color: '#A04000' },
     { role: 'Médecin',     email: 'dr.martin@steevacare.cm',  password: 'Doctor@12345',  color: '#1A5276' },
     { role: 'Pharmacie',   email: 'pharma.centrale@steevacare.cm', password: 'Pharma@12345', color: '#6C3483' },
     { role: 'Patient',     email: 'patient@steevacare.cm',    password: 'Patient@12345', color: '#1E8449' },
-  ];
+  ] : [];
 
   fillDemo(demo: { email: string; password: string }) {
     this.form.setValue({ email: demo.email, password: demo.password });

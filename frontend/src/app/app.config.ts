@@ -13,8 +13,8 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(
       withInterceptors([
-        jwtInterceptor,   // 1. injecte le Bearer token
-        errorInterceptor  // 2. gère les erreurs réseau globalement
+        jwtInterceptor,
+        errorInterceptor
       ])
     )
   ]
