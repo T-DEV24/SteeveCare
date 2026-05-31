@@ -65,6 +65,9 @@ export const routes: Routes = [
     protectedChildRoute('doctors', patientRoles, () =>
       import('./features/patient/doctors/doctors.component').then(m => m.DoctorSearchComponent)
     ),
+    protectedChildRoute('doctors/:id', patientRoles, () =>
+      import('./features/patient/doctor-detail/doctor-detail.component').then(m => m.DoctorDetailComponent)
+    ),
     protectedChildRoute('appointments', patientRoles, () =>
       import('./features/patient/appointments/appointments.component').then(m => m.MyAppointmentsComponent)
     ),
