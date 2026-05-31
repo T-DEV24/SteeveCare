@@ -29,7 +29,7 @@ export interface NavLink {
     </button>
     <aside class="sidebar" [class.mobile-open]="mobileOpen" [style.background]="bgColor">
       <div class="sidebar-logo">
-        <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare - Télémédecine pour l'Afrique">
+        <img src="assets/brand/steevacare-logo.png" alt="SteevaCare - Télémédecine pour l'Afrique">
       </div>
 
       <nav class="sidebar-nav">
@@ -37,37 +37,40 @@ export interface NavLink {
            class="nav-item"
            [class.active]="link.route === activeRoute"
            [routerLink]="link.route"
+           [attr.title]="link.label"
            (click)="mobileOpen = false"
            style="position:relative;">
           <mat-icon>{{link.icon}}</mat-icon>
           {{link.label}}
-          <span *ngIf="badgeCounts[link.route] > 0"
-                class="sidebar-badge-pulse"
-                style="position:absolute;right:14px;top:50%;transform:translateY(-50%);
-                       background:#E74C3C;color:white;border-radius:999px;min-width:20px;
-                       height:20px;padding:0 6px;font-size:11px;font-weight:700;
-                       display:flex;align-items:center;justify-content:center;">
+          <span *ngIf="badgeCounts[link.route] > 0" class="notif-badge">
             {{badgeCounts[link.route]}}
           </span>
         </a>
       </nav>
 
       <div class="sidebar-footer">
-        <button mat-button type="button" class="nav-item" (click)="auth.logout()">
+        <button mat-button type="button" class="nav-item" title="Déconnexion" (click)="auth.logout()">
           <mat-icon>logout</mat-icon> Déconnexion
         </button>
       </div>
     </aside>
   `,
   styles: [`
-    @keyframes sidebarBadgePulse {
-      0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.65); }
-      70% { box-shadow: 0 0 0 8px rgba(231, 76, 60, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-    }
-
-    .sidebar-badge-pulse {
-      animation: sidebarBadgePulse 1.4s infinite;
+    .notif-badge {
+      position:absolute;
+      top:6px;
+      right:6px;
+      background:#E74C3C;
+      color:white;
+      border-radius:50%;
+      width:18px;
+      height:18px;
+      font-size:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      animation:pulse 2s infinite;
+      font-weight:700;
     }
 
     .sidebar-logo img {

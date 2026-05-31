@@ -160,7 +160,7 @@ import { Subject, takeUntil } from 'rxjs';
               <mat-step [completed]="isProfileStepValid">
                 <ng-template matStepLabel>Profil</ng-template>
                 <div style="padding-top:20px;">
-                  <div *ngIf="selectedRole === 'DOCTOR'" class="form-section"
+                  <div *ngIf="currentRole === 'DOCTOR'" class="form-section"
                        style="border:1px solid #D6EAF8;border-radius:10px;
                               padding:20px;background:#EBF5FB;">
                     <h3 style="color:#1A5276;">🩺 Profil Médecin</h3>
@@ -209,7 +209,7 @@ import { Subject, takeUntil } from 'rxjs';
                     </mat-form-field>
                   </div>
 
-                  <div *ngIf="selectedRole === 'PHARMACY'" class="form-section"
+                  <div *ngIf="currentRole === 'PHARMACY'" class="form-section"
                        style="border:1px solid #E8DAEF;border-radius:10px;
                               padding:20px;background:#F5EEF8;">
                     <h3 style="color:#6C3483;">💊 Profil Pharmacie</h3>
@@ -241,7 +241,7 @@ import { Subject, takeUntil } from 'rxjs';
                     </mat-form-field>
                   </div>
 
-                  <div *ngIf="selectedRole !== 'DOCTOR' && selectedRole !== 'PHARMACY'"
+                  <div *ngIf="currentRole !== 'DOCTOR' && currentRole !== 'PHARMACY'"
                        style="background:#F5F6FA;border-radius:10px;padding:20px;color:#7F8C8D;">
                     Aucun profil métier complémentaire n'est requis pour ce rôle.
                   </div>
@@ -324,6 +324,10 @@ export class CreateUserComponent implements OnDestroy {
     adressePharmacie:  [''],
   });
 
+  get currentRole(): string {
+    return this.form.get('role')?.value ?? '';
+  }
+
   get isTypeStepValid(): boolean {
     return this.form.get('role')?.valid ?? false;
   }
@@ -337,8 +341,8 @@ export class CreateUserComponent implements OnDestroy {
   }
 
   get isProfileStepValid(): boolean {
-    if (this.selectedRole === 'DOCTOR') return this.form.get('specialite')?.valid ?? false;
-    if (this.selectedRole === 'PHARMACY') return this.form.get('nomPharmacie')?.valid ?? false;
+    if (this.currentRole === 'DOCTOR') return this.form.get('specialite')?.valid ?? false;
+    if (this.currentRole === 'PHARMACY') return this.form.get('nomPharmacie')?.valid ?? false;
     return this.isTypeStepValid;
   }
 

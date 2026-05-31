@@ -1,7 +1,7 @@
 // src/app/features/doctor/consultation/consultation.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
-import { FormArray, FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
@@ -12,7 +12,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Observable, Subject, map, startWith, switchMap, takeUntil } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
@@ -36,7 +36,7 @@ interface Appointment {
   motif: string;
 }
 
-interface Pharmacy { id: number; nom: string; prenom?: string; }
+interface Pharmacy { id: number; nom: string; prenom?: string; ville?: string; }
 
 interface MedicalRecord {
   groupeSanguin?: string;
@@ -65,6 +65,7 @@ interface PreviousConsultation {
     CommonModule,
     RouterModule,
     ReactiveFormsModule,
+    FormsModule,
     InitialsPipe,
     DateFrPipe,
     SidebarComponent,
@@ -211,12 +212,11 @@ interface PreviousConsultation {
                         </div>
                       </div>
 
-                      <mat-form-field appearance="outline">
-                        <mat-label>Pharmacie destinataire</mat-label>
-                        <mat-select formControlName="selectedPharmacyId">
-                          <mat-option [value]="null">-- Choisir plus tard --</mat-option>
-                          <mat-option *ngFor="let p of pharmacies; trackBy: trackByItem" [value]="p.id">
-                            {{p.nom}}
+                      <mat-form-field appearance="outline" style="width:100%">
+                        <mat-label>Pharmacie</mat-label>
+                        <mat-select [(ngModel)]="selectedPharmacyId" [ngModelOptions]="{standalone: true}">
+                          <mat-option *ngFor="let ph of pharmacies; trackBy: trackByItem" [value]="ph.id">
+                            {{ph.nom}} — {{ph.ville || 'Ville non renseignée'}}
                           </mat-option>
                         </mat-select>
                       </mat-form-field>
@@ -241,7 +241,7 @@ interface PreviousConsultation {
 
                     <div #prescriptionPreview class="prescription-paper">
                       <div class="prescription-header">
-                        <img src="assets/brand/steevacare-logo.svg" alt="SteevaCare">
+                        <img src="assets/brand/steevacare-logo.png" alt="SteevaCare">
                         <div>
                           <h3>Dr {{appointment.doctorPrenom}} {{appointment.doctorNom}}</h3>
                           <p>{{appointment.doctorSpecialite || 'Médecine générale'}}</p>
@@ -442,6 +442,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
+  private readonly snackBar = inject(MatSnackBar);
 
   loading = true;
   saving = false;
@@ -452,7 +453,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   today = new Date();
 
   appointment: Appointment | null = null;
-  pharmacies: { id: number; nom: string }[] = [];
+  pharmacies: Pharmacy[] = [];
   medicalRecord: MedicalRecord | null = null;
   previousConsultations: PreviousConsultation[] = [];
 
@@ -525,6 +526,14 @@ export class ConsultationComponent implements OnInit, OnDestroy {
     return this.medicaments.getRawValue().filter((m: any) => !!m.nom || !!m.posologie || !!m.instructions);
   }
 
+  get selectedPharmacyId(): number | null {
+    return this.consultationForm.get('selectedPharmacyId')?.value ?? null;
+  }
+
+  set selectedPharmacyId(value: number | null) {
+    this.consultationForm.get('selectedPharmacyId')?.setValue(value);
+  }
+
   get bloodType(): string {
     return this.medicalRecord?.groupeSanguin ?? this.medicalRecord?.bloodType ?? 'Non renseigné';
   }
@@ -589,13 +598,18 @@ export class ConsultationComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.selectedPharmacyId) {
+      this.snackBar.open('Sélectionnez une pharmacie', '✕', { duration: 4000 });
+      return;
+    }
+
     this.prescriptionSending = true;
-    this.api.post('/api/prescriptions', this.buildPrescriptionBody())
+    this.api.post<{ codeRetrait?: string }>('/api/prescriptions', this.buildPrescriptionBody())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: () => {
+        next: (res) => {
           this.prescriptionSending = false;
-          this.notification.success('Ordonnance envoyée à la pharmacie.', 4000);
+          this.snackBar.open('Ordonnance envoyée — Code: ' + (res.codeRetrait ?? '—'), '✕', { duration: 8000 });
         },
         error: (err) => {
           this.prescriptionSending = false;
@@ -654,7 +668,8 @@ export class ConsultationComponent implements OnInit, OnDestroy {
         next: (pharmacies) => {
           this.pharmacies = pharmacies.map(p => ({
             id: p.id,
-            nom: p.prenom ? `${p.prenom} ${p.nom}` : p.nom
+            nom: p.prenom ? `${p.prenom} ${p.nom}` : p.nom,
+            ville: p.ville
           }));
         }
       });
@@ -755,7 +770,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   }
 
   private buildPrescriptionBody(): Record<string, unknown> {
-    const selectedPharmacyId = this.consultationForm.get('selectedPharmacyId')?.value;
+    const selectedPharmacyId = this.selectedPharmacyId;
     return {
       appointmentId: this.appointment?.id,
       patientId: this.appointment?.patientId,
