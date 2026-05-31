@@ -202,6 +202,10 @@ export class LoginComponent implements OnDestroy {
   }
 
   private getErrorMessage(err: any, fallback: string): string {
+    if (err?.status === 0) {
+      return 'Impossible de joindre le serveur SteevaCare. Vérifiez que le backend est démarré sur le port 8082.';
+    }
+
     if (typeof err?.error === 'string') {
       return err.error;
     }
