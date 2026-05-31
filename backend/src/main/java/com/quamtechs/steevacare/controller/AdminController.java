@@ -1,0 +1,113 @@
+// src/main/java/com/quamtechs/steevacare/controller/AdminController.java
+package com.quamtechs.steevacare.controller;
+
+import com.quamtechs.steevacare.dto.request.CreateUserRequest;
+import com.quamtechs.steevacare.dto.response.AdminStatsResponse;
+import com.quamtechs.steevacare.dto.response.UserResponse;
+import com.quamtechs.steevacare.entity.User;
+import com.quamtechs.steevacare.service.AdminService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/admin")
+@RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','GESTIONNAIRE','SUPER_ADMIN')")
+public class AdminController {
+
+    private final AdminService adminService;
+
+    /**
+     * POST /api/admin/users — Créer un compte utilisateur
+     */
+    @PostMapping("/users")
+    public ResponseEntity<UserResponse> createUser(
+        @Valid @RequestBody CreateUserRequest request,
+        @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(adminService.createUser(request, currentUser.getId()));
+    }
+
+    /**
+     * GET /api/admin/users — Lister tous les utilisateurs (hors DELETED)
+     */
+    @GetMapping("/users")
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(adminService.getAllUsers());
+    }
+
+    /**
+     * PATCH /api/admin/users/{id}/freeze — Geler un compte
+     */
+    @PatchMapping("/users/{id}/freeze")
+    public ResponseEntity<UserResponse> freezeAccount(
+        @PathVariable Long id,
+        @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.ok(adminService.freezeAccount(id, currentUser.getId()));
+    }
+
+    /**
+     * PATCH /api/admin/users/{id}/unfreeze — Dégeler un compte
+     */
+    @PatchMapping("/users/{id}/unfreeze")
+    public ResponseEntity<UserResponse> unfreezeAccount(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.unfreezeAccount(id));
+    }
+
+    /**
+     * DELETE /api/admin/delete/{id} — Suppression définitive (SUPER_ADMIN uniquement)
+     */
+    @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        adminService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * GET /api/admin/stats — Statistiques du tableau de bord
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<AdminStatsResponse> getStats() {
+        return ResponseEntity.ok(adminService.getDashboardStats());
+    }
+
+    /**
+     * GET /api/admin/users/{id} — Détail d'un utilisateur
+     */
+    @GetMapping("/users/{id}")
+    public ResponseEntity<UserResponse> getUserById(
+        @PathVariable Long id,
+        @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.ok(adminService.toUserResponse(
+            adminService.getAllUsers().stream()
+                .filter(u -> u.id().equals(id))
+                .findFirst()
+                .map(u -> {
+                    com.quamtechs.steevacare.entity.User entity =
+                        new com.quamtechs.steevacare.entity.User();
+                    entity.setId(u.id());
+                    entity.setEmail(u.email());
+                    entity.setNom(u.nom());
+                    entity.setPrenom(u.prenom());
+                    entity.setRole(u.role());
+                    entity.setStatus(u.status());
+                    return entity;
+                })
+                .orElseThrow(() -> new com.quamtechs.steevacare.exception.AppException(
+                    org.springframework.http.HttpStatus.NOT_FOUND,
+                    "Utilisateur introuvable"
+                ))
+        ));
+    }
+}

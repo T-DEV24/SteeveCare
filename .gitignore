@@ -1,0 +1,18 @@
+﻿# Node
+node_modules/
+npm-debug.log*
+
+# Angular
+dist/
+.angular/
+*.js.map
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
