@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Prescription {
   id: number; medicaments: string; posologie: string; instructions: string;
@@ -24,27 +25,12 @@ interface Prescription {
 @Component({
   selector: 'app-prescriptions',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatTableModule, MatPaginatorModule, MatSelectModule,
             MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#6C3483;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/pharmacy/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item active" routerLink="/pharmacy/prescriptions">
-            <mat-icon>description</mat-icon> Ordonnances
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'pharmacy'" [activeRoute]="'/pharmacy/prescriptions'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">

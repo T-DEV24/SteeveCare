@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Appointment {
   id: number; patientNom: string; patientPrenom: string; patientId: number;
@@ -24,24 +25,12 @@ interface Pharmacy { id: number; nom: string; prenom?: string; }
 @Component({
   selector: 'app-consultation',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatFormFieldModule, MatInputModule, MatSelectModule,
             MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#0B5345;">
-        <div class="sidebar-logo"><span class="logo-icon">🩺</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/doctor/dashboard"><mat-icon>dashboard</mat-icon> Tableau de bord</a>
-          <a class="nav-item" routerLink="/doctor/appointments"><mat-icon>calendar_today</mat-icon> Rendez-vous</a>
-          <a class="nav-item" routerLink="/doctor/messages"><mat-icon>chat</mat-icon> Messagerie</a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/consultation'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
 

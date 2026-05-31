@@ -16,6 +16,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface UserRow {
   id: number; email: string; nom: string; prenom: string;
@@ -25,7 +26,7 @@ interface UserRow {
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [
+  imports: [SidebarComponent,
     CommonModule, RouterModule, FormsModule,
     MatIconModule, MatButtonModule, MatCardModule,
     MatTableModule, MatPaginatorModule, MatFormFieldModule,
@@ -36,25 +37,7 @@ interface UserRow {
     <div style="display:flex;min-height:100vh;">
 
       <!-- ═══ SIDEBAR ═══ -->
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/admin/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item active" routerLink="/admin/users">
-            <mat-icon>people</mat-icon> Utilisateurs
-          </a>
-          <a class="nav-item" routerLink="/admin/create-user">
-            <mat-icon>person_add</mat-icon> Créer un compte
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'admin'" [activeRoute]="'/admin/users'"></app-sidebar>
 
       <!-- ═══ CONTENU ═══ -->
       <main class="main-content" style="flex:1;">

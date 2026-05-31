@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 
 interface Contact { id: number; nom: string; prenom: string; }
 interface Message  { id: number; senderId: number; contenu: string; timestamp: string; }
@@ -15,31 +16,11 @@ interface Message  { id: number; senderId: number; contenu: string; timestamp: s
 @Component({
   selector: 'app-doctor-messages',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule,
             MatButtonModule, MatProgressSpinnerModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#0B5345;">
-        <div class="sidebar-logo">
-          <span class="logo-icon">🩺</span> SteevaCare
-        </div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/doctor/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item" routerLink="/doctor/appointments">
-            <mat-icon>calendar_today</mat-icon> Rendez-vous
-          </a>
-          <a class="nav-item active" routerLink="/doctor/messages">
-            <mat-icon>chat</mat-icon> Messagerie
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'doctor'" [activeRoute]="'/doctor/messages'"></app-sidebar>
 
       <main class="main-content" style="flex:1;padding:0;">
         <div style="display:flex;height:100vh;">
