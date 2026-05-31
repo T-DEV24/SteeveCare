@@ -1,5 +1,5 @@
 // src/app/features/pharmacy/dashboard/dashboard.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,9 +8,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { Subject, takeUntil } from 'rxjs';
 
 interface Prescription {
   id: number; medicaments: string; posologie: string; instructions: string;
@@ -22,26 +25,11 @@ interface Prescription {
 @Component({
   selector: 'app-pharmacy-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
+  imports: [SidebarComponent, CommonModule, RouterModule, FormsModule, MatIconModule, MatButtonModule,
             MatCardModule, MatTableModule, MatProgressSpinnerModule, MatSnackBarModule],
   template: `
     <div style="display:flex;min-height:100vh;">
-      <aside class="sidebar" style="background:#6C3483;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item active" routerLink="/pharmacy/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item" routerLink="/pharmacy/prescriptions">
-            <mat-icon>description</mat-icon> Ordonnances
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'pharmacy'" [activeRoute]="'/pharmacy/dashboard'"></app-sidebar>
 
       <main class="main-content" style="flex:1;">
         <div class="page-header">
@@ -75,8 +63,18 @@ interface Prescription {
           <h2 style="font-size:16px;font-weight:600;color:#6C3483;margin-bottom:16px;">
             🔍 Rechercher une ordonnance par code de retrait
           </h2>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:#F5EEF8;border-radius:10px;padding:12px;">
+            <div style="display:flex;align-items:center;gap:8px;color:#6C3483;font-weight:600;font-size:13px;">
+              <span style="width:10px;height:10px;background:#F39C12;border-radius:50%;display:inline-block;animation:pendingPulse 1.4s infinite;"></span>
+              {{pendingCount}} ordonnance(s) en attente · mise à jour automatique toutes les 30s
+            </div>
+            <button mat-stroked-button type="button" (click)="simulateQrScan()" style="border-radius:8px;color:#6C3483;">
+              <mat-icon>qr_code_scanner</mat-icon> Scanner QR simulé
+            </button>
+          </div>
           <div style="display:flex;gap:12px;align-items:center;">
-            <input [(ngModel)]="searchCode"
+            <input #codeInput
+                   [(ngModel)]="searchCode"
                    (keydown.enter)="searchByCode()"
                    placeholder="Ex: SC-2024-A3F7C2B1"
                    style="flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:8px;
@@ -242,12 +240,22 @@ interface Prescription {
         </mat-card>
       </main>
     </div>
-  `
+  `,
+  styles: [`
+    @keyframes pendingPulse {
+      0% { box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.7); }
+      70% { box-shadow: 0 0 0 9px rgba(243, 156, 18, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(243, 156, 18, 0); }
+    }
+  `]
 })
-export class PharmacyDashboardComponent implements OnInit {
+export class PharmacyDashboardComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth     = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
+
+  @ViewChild('codeInput') codeInput?: ElementRef<HTMLInputElement>;
 
   loading       = true;
   searchLoading = false;
@@ -256,17 +264,43 @@ export class PharmacyDashboardComponent implements OnInit {
   searchCode    = '';
   searchResult: Prescription | null = null;
   searchError   = '';
+  private intervalId: any = null;
 
   cols = ['date','patient','medicaments','code','statut'];
 
   get pending()   { return this.prescriptions.filter(p => !p.delivree); }
   get delivered() { return this.prescriptions.filter(p => p.delivree); }
+  get pendingCount(): number { return this.pending.length; }
 
   ngOnInit(): void {
-    this.api.get<Prescription[]>('/api/pharmacy/prescriptions').subscribe({
+    this.loadPrescriptions();
+    this.intervalId = setInterval(() => this.loadPrescriptions(false), 30000);
+    setTimeout(() => this.focusCodeInput(), 0);
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.intervalId) clearInterval(this.intervalId);
+  }
+
+  loadPrescriptions(showLoader = true): void {
+    if (showLoader) this.loading = true;
+    this.api.get<Prescription[]>('/api/pharmacy/prescriptions').pipe(takeUntil(this.destroy$)).subscribe({
       next: (d) => { this.prescriptions = d; this.loading = false; },
       error: () => { this.loading = false; }
     });
+  }
+
+  focusCodeInput(): void {
+    this.codeInput?.nativeElement.focus();
+  }
+
+  simulateQrScan(): void {
+    const pendingPrescription = this.pending[0];
+    this.searchCode = pendingPrescription?.codeRetrait ?? '';
+    this.focusCodeInput();
+    if (this.searchCode) this.searchByCode();
   }
 
   searchByCode(): void {
@@ -274,7 +308,7 @@ export class PharmacyDashboardComponent implements OnInit {
     this.searchLoading = true;
     this.searchResult  = null;
     this.searchError   = '';
-    this.api.get<Prescription>(`/api/pharmacy/prescriptions/retrait/${this.searchCode.trim()}`).subscribe({
+    this.api.get<Prescription>(`/api/pharmacy/prescriptions/retrait/${this.searchCode.trim()}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (p) => { this.searchResult = p; this.searchLoading = false; },
       error: (err) => {
         this.searchLoading = false;
@@ -287,18 +321,18 @@ export class PharmacyDashboardComponent implements OnInit {
 
   deliver(p: Prescription): void {
     this.deliverLoading = true;
-    this.api.patch<Prescription>(`/api/pharmacy/prescriptions/${p.id}/delivered`).subscribe({
+    this.api.patch<Prescription>(`/api/pharmacy/prescriptions/${p.id}/delivered`).pipe(takeUntil(this.destroy$)).subscribe({
       next: (updated) => {
         this.deliverLoading = false;
         this.searchResult = updated;
         const idx = this.prescriptions.findIndex(x => x.id === p.id);
         if (idx >= 0) this.prescriptions[idx] = updated;
-        this.snackBar.open('Ordonnance marquée comme délivrée ✅', '✕',
-          { duration: 3000, panelClass: ['snack-success'] });
+        this.prescriptions = [...this.prescriptions];
+        this.notification.success('Ordonnance marquée comme délivrée ✅', 3000);
       },
       error: (err) => {
         this.deliverLoading = false;
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
       }
     });
   }

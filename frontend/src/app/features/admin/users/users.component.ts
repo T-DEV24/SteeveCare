@@ -1,5 +1,5 @@
 // src/app/features/admin/users/users.component.ts
-import { Component, OnInit, inject, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -8,14 +8,19 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatTableModule, MatTableDataSource } from '@angular/material/table';
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
+import { MatSortModule, MatSort } from '@angular/material/sort';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { NotificationService } from '../../../core/services/notification.service';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
+import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
+import { Subject, takeUntil } from 'rxjs';
 
 interface UserRow {
   id: number; email: string; nom: string; prenom: string;
@@ -25,10 +30,10 @@ interface UserRow {
 @Component({
   selector: 'app-user-management',
   standalone: true,
-  imports: [
+  imports: [InitialsPipe, SidebarComponent,
     CommonModule, RouterModule, FormsModule,
     MatIconModule, MatButtonModule, MatCardModule,
-    MatTableModule, MatPaginatorModule, MatFormFieldModule,
+    MatTableModule, MatPaginatorModule, MatSortModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatTooltipModule,
     MatProgressSpinnerModule, MatSnackBarModule
   ],
@@ -36,25 +41,7 @@ interface UserRow {
     <div style="display:flex;min-height:100vh;">
 
       <!-- ═══ SIDEBAR ═══ -->
-      <aside class="sidebar" style="background:#1A5276;">
-        <div class="sidebar-logo"><span class="logo-icon">💊</span> SteevaCare</div>
-        <nav class="sidebar-nav">
-          <a class="nav-item" routerLink="/admin/dashboard">
-            <mat-icon>dashboard</mat-icon> Tableau de bord
-          </a>
-          <a class="nav-item active" routerLink="/admin/users">
-            <mat-icon>people</mat-icon> Utilisateurs
-          </a>
-          <a class="nav-item" routerLink="/admin/create-user">
-            <mat-icon>person_add</mat-icon> Créer un compte
-          </a>
-        </nav>
-        <div class="sidebar-footer">
-          <a class="nav-item" (click)="auth.logout()" style="cursor:pointer;">
-            <mat-icon>logout</mat-icon> Déconnexion
-          </a>
-        </div>
-      </aside>
+      <app-sidebar [role]="'admin'" [activeRoute]="'/admin/users'"></app-sidebar>
 
       <!-- ═══ CONTENU ═══ -->
       <main class="main-content" style="flex:1;">
@@ -79,14 +66,14 @@ interface UserRow {
               <mat-label>Rôle</mat-label>
               <mat-select [(ngModel)]="filterRole" (selectionChange)="applyFilter()">
                 <mat-option value="">Tous les rôles</mat-option>
-                <mat-option *ngFor="let r of roles" [value]="r">{{r}}</mat-option>
+                <mat-option *ngFor="let r of roles; trackBy: trackByItem" [value]="r">{{r}}</mat-option>
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline" style="margin:0;">
               <mat-label>Statut</mat-label>
               <mat-select [(ngModel)]="filterStatus" (selectionChange)="applyFilter()">
                 <mat-option value="">Tous les statuts</mat-option>
-                <mat-option *ngFor="let s of statuses" [value]="s">{{s}}</mat-option>
+                <mat-option *ngFor="let s of statuses; trackBy: trackByItem" [value]="s">{{s}}</mat-option>
               </mat-select>
             </mat-form-field>
           </div>
@@ -102,12 +89,12 @@ interface UserRow {
                                   style="margin:0 auto;"></mat-progress-spinner>
           </div>
 
-          <table *ngIf="!loading" mat-table [dataSource]="dataSource"
+          <table *ngIf="!loading" mat-table matSort [dataSource]="dataSource"
                  style="width:100%;">
 
             <!-- Col 1 : Utilisateur -->
             <ng-container matColumnDef="utilisateur">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;font-size:12px;
                          text-transform:uppercase;letter-spacing:0.5px;">
                 Utilisateur
@@ -116,7 +103,7 @@ interface UserRow {
                 <div style="display:flex;align-items:center;gap:12px;">
                   <div class="avatar"
                        [style.background]="getRoleColor(u.role)">
-                    {{getInitials(u.nom, u.prenom)}}
+                    {{ u.nom | initials:u.prenom }}
                   </div>
                   <div>
                     <div style="font-weight:500;color:#2C3E50;">
@@ -130,7 +117,7 @@ interface UserRow {
 
             <!-- Col 2 : Rôle -->
             <ng-container matColumnDef="role">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;
                          font-size:12px;text-transform:uppercase;">Rôle</th>
               <td mat-cell *matCellDef="let u" style="padding:16px;">
@@ -140,7 +127,7 @@ interface UserRow {
 
             <!-- Col 3 : Statut -->
             <ng-container matColumnDef="statut">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;
                          font-size:12px;text-transform:uppercase;">Statut</th>
               <td mat-cell *matCellDef="let u" style="padding:16px;">
@@ -150,7 +137,7 @@ interface UserRow {
 
             <!-- Col 4 : Date -->
             <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef
+              <th mat-header-cell *matHeaderCellDef mat-sort-header
                   style="padding:16px;font-weight:600;color:#7F8C8D;
                          font-size:12px;text-transform:uppercase;">Inscription</th>
               <td mat-cell *matCellDef="let u" style="padding:16px;color:#7F8C8D;font-size:13px;">
@@ -166,6 +153,7 @@ interface UserRow {
 
                   <!-- Geler -->
                   <button *ngIf="u.status === 'ACTIVE'" mat-icon-button
+                          aria-label="Geler le compte"
                           matTooltip="Geler le compte"
                           (click)="freeze(u)"
                           [disabled]="actionLoading === u.id"
@@ -175,6 +163,7 @@ interface UserRow {
 
                   <!-- Dégeler -->
                   <button *ngIf="u.status === 'FROZEN'" mat-icon-button
+                          aria-label="Dégeler le compte"
                           matTooltip="Dégeler le compte"
                           (click)="unfreeze(u)"
                           [disabled]="actionLoading === u.id"
@@ -184,6 +173,7 @@ interface UserRow {
 
                   <!-- Supprimer (SUPER_ADMIN uniquement) -->
                   <button *ngIf="auth.userRole() === 'SUPER_ADMIN'" mat-icon-button
+                          aria-label="Supprimer définitivement"
                           matTooltip="Supprimer définitivement"
                           (click)="confirmDelete(u)"
                           [disabled]="actionLoading === u.id"
@@ -241,12 +231,14 @@ interface UserRow {
     </div>
   `
 })
-export class UserManagementComponent implements OnInit {
+export class UserManagementComponent implements OnInit, AfterViewInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   auth    = inject(AuthService);
   private api      = inject(ApiService);
-  private snackBar = inject(MatSnackBar);
+  private notification = inject(NotificationService);
 
   @ViewChild(MatPaginator) paginator!: MatPaginator;
+  @ViewChild(MatSort) sort!: MatSort;
 
   loading       = true;
   actionLoading: number | null = null;
@@ -263,15 +255,34 @@ export class UserManagementComponent implements OnInit {
   dataSource = new MatTableDataSource<UserRow>([]);
   private allUsers: UserRow[] = [];
 
+  constructor() {
+    this.dataSource.sortingDataAccessor = (user, column) => {
+      switch (column) {
+        case 'utilisateur': return `${user.prenom} ${user.nom} ${user.email}`.toLowerCase();
+        case 'statut': return user.status;
+        case 'date': return new Date(user.createdAt).getTime();
+        default: return (user as any)[column] ?? '';
+      }
+    };
+  }
+
   ngOnInit(): void { this.loadUsers(); }
+
+  ngAfterViewInit(): void {
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
 
   loadUsers(): void {
     this.loading = true;
-    this.api.get<UserRow[]>('/api/admin/users').subscribe({
+    this.api.get<UserRow[]>('/api/admin/users').pipe(takeUntil(this.destroy$)).subscribe({
       next: (data) => {
         this.allUsers = data;
         this.dataSource.data = data;
-        setTimeout(() => { this.dataSource.paginator = this.paginator; });
+        setTimeout(() => {
+          this.dataSource.paginator = this.paginator;
+          this.dataSource.sort = this.sort;
+        });
         this.loading = false;
       },
       error: () => { this.loading = false; }
@@ -289,19 +300,22 @@ export class UserManagementComponent implements OnInit {
       const matchStatus = !this.filterStatus || u.status === this.filterStatus;
       return matchText && matchRole && matchStatus;
     });
-    setTimeout(() => { this.dataSource.paginator = this.paginator; });
+    setTimeout(() => {
+      this.dataSource.paginator = this.paginator;
+      this.dataSource.sort = this.sort;
+    });
   }
 
   freeze(u: UserRow): void {
     this.actionLoading = u.id;
-    this.api.patch(`/api/admin/users/${u.id}/freeze`).subscribe({
+    this.api.patch(`/api/admin/users/${u.id}/freeze`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.snackBar.open(`Compte de ${u.prenom} ${u.nom} gelé ❄️`, '✕', { duration: 3000 });
+        this.notification.warning(`Compte de ${u.prenom} ${u.nom} gelé ❄️`, 3000);
         this.loadUsers();
         this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
@@ -309,14 +323,14 @@ export class UserManagementComponent implements OnInit {
 
   unfreeze(u: UserRow): void {
     this.actionLoading = u.id;
-    this.api.patch(`/api/admin/users/${u.id}/unfreeze`).subscribe({
+    this.api.patch(`/api/admin/users/${u.id}/unfreeze`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.snackBar.open(`Compte de ${u.prenom} ${u.nom} dégelé ▶️`, '✕', { duration: 3000 });
+        this.notification.success(`Compte de ${u.prenom} ${u.nom} dégelé ▶️`, 3000);
         this.loadUsers();
         this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
@@ -329,22 +343,19 @@ export class UserManagementComponent implements OnInit {
     const u = this.userToDelete;
     this.userToDelete = null;
     this.actionLoading = u.id;
-    this.api.delete(`/api/admin/delete/${u.id}`).subscribe({
+    this.api.delete(`/api/admin/delete/${u.id}`).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => {
-        this.snackBar.open(`Compte supprimé définitivement`, '✕', { duration: 3000 });
+        this.notification.success(`Compte supprimé définitivement`, 3000);
         this.loadUsers();
         this.actionLoading = null;
       },
       error: (err) => {
-        this.snackBar.open(err.error?.erreur ?? 'Erreur', '✕', { duration: 4000 });
+        this.notification.error(err.error?.erreur ?? 'Erreur', 4000);
         this.actionLoading = null;
       }
     });
   }
 
-  getInitials(nom: string, prenom: string): string {
-    return ((prenom?.[0] ?? '') + (nom?.[0] ?? '')).toUpperCase();
-  }
 
   getRoleColor(role: string): string {
     const c: Record<string,string> = {
@@ -360,4 +371,15 @@ export class UserManagementComponent implements OnInit {
       day:'2-digit', month:'2-digit', year:'numeric'
     });
   }
+
+  trackByItem(_: number, item: any): unknown {
+    return item?.id ?? item?.route ?? item?.value ?? item?.label ?? item;
+  }
+
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
 }

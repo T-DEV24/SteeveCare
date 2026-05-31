@@ -1,4 +1,4 @@
-﻿/* src/styles.scss â€” SteevaCare Global Styles */
+/* src/styles.scss â€” SteevaCare Global Styles */
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 /* ANGULAR MATERIAL THEME (MDC â€” Angular 17)       */
@@ -7,6 +7,7 @@
 
 $primary: mat.define-palette(mat.$teal-palette);
 $accent:  mat.define-palette(mat.$green-palette, A200, A100, A400);
+// Angular Material 17.3-compatible legacy theme API.
 $theme:   mat.define-light-theme((
   color: (primary: $primary, accent: $accent),
   typography: mat.define-typography-config(),
@@ -241,7 +242,7 @@ mat-card {
 .overlay-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,.5);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -254,7 +255,7 @@ mat-card {
   background: white;
   border-radius: 16px;
   padding: 32px;
-  max-width: 520px;
+  max-width: 480px;
   width: 92%;
   max-height: 90vh;
   overflow-y: auto;
@@ -403,6 +404,8 @@ mat-form-field { width: 100%; }
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .snack-error   .mdc-snackbar__surface { background: #E74C3C !important; }
 .snack-success .mdc-snackbar__surface { background: #27AE60 !important; }
+.snack-warning .mdc-snackbar__surface { background: #F39C12 !important; color: #1F2937 !important; }
+.snack-info    .mdc-snackbar__surface { background: #1A5276 !important; }
 .snack-warn    .mdc-snackbar__surface { background: #F39C12 !important; }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
@@ -422,3 +425,116 @@ mat-form-field { width: 100%; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
+
+/* Accessibility and responsive enhancements */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+.mat-mdc-button:focus-visible,
+.mat-mdc-raised-button:focus-visible,
+.mat-mdc-icon-button:focus-visible {
+  outline: 3px solid #F1C40F !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(26,82,118,0.22) !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.global-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.62);
+  backdrop-filter: blur(2px);
+}
+
+.sidebar-toggle {
+  display: none !important;
+  position: fixed !important;
+  top: 12px;
+  left: 12px;
+  z-index: 2100;
+  background: #1A5276 !important;
+  color: #FFFFFF !important;
+  box-shadow: var(--shadow-md);
+}
+
+/* Higher-contrast WCAG AA badge colors */
+.badge-PATIENT,
+.badge-ACTIVE,
+.badge-rdv-CONFIRMED { background: #D5F5E3; color: #145A32; }
+.badge-DOCTOR,
+.badge-FROZEN,
+.badge-rdv-COMPLETED { background: #D6EAF8; color: #154360; }
+.badge-PHARMACY { background: #E8DAEF; color: #512E5F; }
+.badge-ADMIN,
+.badge-PENDING,
+.badge-rdv-PENDING { background: #FDEBD0; color: #7E3B00; }
+.badge-GESTIONNAIRE { background: #FEF9E7; color: #6E4F00; }
+.badge-SUPER_ADMIN,
+.badge-DELETED,
+.badge-rdv-REJECTED { background: #FADBD8; color: #7B241C; }
+.badge-rdv-CANCELLED { background: #ECEFF1; color: #455A64; }
+
+@media (max-width: 768px) {
+  :root { --sidebar-width: 260px; }
+
+  .sidebar-toggle { display: inline-flex !important; }
+
+  .sidebar {
+    transform: translateX(-105%);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    z-index: 2000;
+    box-shadow: none;
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.35), var(--shadow-md);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 72px 16px 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .overlay-dialog {
+    width: 95%;
+    max-width: 95%;
+    padding: 24px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.badge-rdv-DISPENSED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
+.badge-rdv-DELIVERED { background:#D1F2EB; color:#0E6655; padding:4px 12px; border-radius:20px; font-weight:600; }
+.badge-rdv-PHARMACY_PENDING { background:#FDEBD0; color:#7E3B00; padding:4px 12px; border-radius:20px; font-weight:600; }
