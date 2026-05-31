@@ -89,7 +89,6 @@ interface Appointment {
                         {{rdv.doctorSpecialite}}
                       </div>
                     </div>
-                    <!-- CORRECTION : [class] binding au lieu de class="badge-rdv-{{...}}" -->
                     <span [class]="'badge-rdv-' + rdv.statut">{{rdv.statut}}</span>
                   </div>
 
@@ -179,7 +178,7 @@ export class MyAppointmentsComponent implements OnInit {
     this.actionLoading = rdv.id;
     this.api.patch(`/api/appointments/${rdv.id}/status`, { status: 'CANCELLED' }).subscribe({
       next: () => {
-        rdv.statut = 'CANCELLED';
+        this.appointments = this.appointments.filter(a => a.id !== rdv.id);
         this.snackBar.open('Rendez-vous annulé', '✕', { duration: 3000 });
         this.actionLoading = null;
       },
