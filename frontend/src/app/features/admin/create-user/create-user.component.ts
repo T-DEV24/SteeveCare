@@ -93,6 +93,7 @@ import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.com
                            [type]="showPwd ? 'text' : 'password'"
                            placeholder="Minimum 8 caractères">
                     <button mat-icon-button matSuffix type="button"
+                            [attr.aria-label]="showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
                             (click)="showPwd=!showPwd">
                       <mat-icon style="color:#7F8C8D;">
                         {{showPwd?'visibility_off':'visibility'}}

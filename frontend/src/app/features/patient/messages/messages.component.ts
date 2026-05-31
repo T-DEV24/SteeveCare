@@ -123,6 +123,7 @@ interface Message { id: number; senderId: number; contenu: string; timestamp: st
                                    outline:none;font-family:inherit;max-height:120px;min-height:40px;">
                   </textarea>
                   <button mat-icon-button
+                          aria-label="Envoyer le message"
                           (click)="sendMessage()"
                           [disabled]="!newMessage.trim() || sending || newMessage.length > 500"
                           style="background:#1A5276;color:white;border-radius:50%;

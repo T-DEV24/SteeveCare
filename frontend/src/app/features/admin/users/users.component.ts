@@ -149,6 +149,7 @@ interface UserRow {
 
                   <!-- Geler -->
                   <button *ngIf="u.status === 'ACTIVE'" mat-icon-button
+                          aria-label="Geler le compte"
                           matTooltip="Geler le compte"
                           (click)="freeze(u)"
                           [disabled]="actionLoading === u.id"
@@ -158,6 +159,7 @@ interface UserRow {
 
                   <!-- Dégeler -->
                   <button *ngIf="u.status === 'FROZEN'" mat-icon-button
+                          aria-label="Dégeler le compte"
                           matTooltip="Dégeler le compte"
                           (click)="unfreeze(u)"
                           [disabled]="actionLoading === u.id"
@@ -167,6 +169,7 @@ interface UserRow {
 
                   <!-- Supprimer (SUPER_ADMIN uniquement) -->
                   <button *ngIf="auth.userRole() === 'SUPER_ADMIN'" mat-icon-button
+                          aria-label="Supprimer définitivement"
                           matTooltip="Supprimer définitivement"
                           (click)="confirmDelete(u)"
                           [disabled]="actionLoading === u.id"

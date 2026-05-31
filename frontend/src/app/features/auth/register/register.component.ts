@@ -75,6 +75,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                 <input matInput formControlName="password"
                        [type]="showPwd ? 'text' : 'password'">
                 <button mat-icon-button matSuffix type="button"
+                        [attr.aria-label]="showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
                         (click)="showPwd=!showPwd">
                   <mat-icon style="color:#7F8C8D;">
                     {{showPwd?'visibility_off':'visibility'}}
@@ -107,6 +108,7 @@ const passwordMatchValidator: ValidatorFn = (group: AbstractControl): Validation
                 <input matInput formControlName="confirmPassword"
                        [type]="showConfirm ? 'text' : 'password'">
                 <button mat-icon-button matSuffix type="button"
+                        [attr.aria-label]="showConfirm ? 'Masquer la confirmation' : 'Afficher la confirmation'"
                         (click)="showConfirm=!showConfirm">
                   <mat-icon style="color:#7F8C8D;">
                     {{showConfirm?'visibility_off':'visibility'}}

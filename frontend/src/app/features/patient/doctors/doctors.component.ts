@@ -156,10 +156,12 @@ interface Doctor {
              style="display:flex;justify-content:center;align-items:center;
                     gap:8px;margin-top:28px;">
           <button mat-icon-button [disabled]="currentPage === 0"
+                  aria-label="Page précédente"
                   (click)="changePage(currentPage-1)">
             <mat-icon>chevron_left</mat-icon>
           </button>
           <button *ngFor="let p of pageNumbers" mat-icon-button
+                  [attr.aria-label]="'Aller à la page ' + (p + 1)"
                   (click)="changePage(p)"
                   [style.background]="p === currentPage ? '#1A5276' : 'transparent'"
                   [style.color]="p === currentPage ? 'white' : 'inherit'"
@@ -167,6 +169,7 @@ interface Doctor {
             {{p + 1}}
           </button>
           <button mat-icon-button [disabled]="currentPage === totalPages - 1"
+                  aria-label="Page suivante"
                   (click)="changePage(currentPage+1)">
             <mat-icon>chevron_right</mat-icon>
           </button>

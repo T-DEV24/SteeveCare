@@ -19,7 +19,15 @@ export interface NavLink {
   standalone: true,
   imports: [CommonModule, RouterModule, MatIconModule, MatButtonModule],
   template: `
-    <aside class="sidebar" [style.background]="bgColor">
+    <button mat-icon-button
+            type="button"
+            class="sidebar-toggle"
+            [attr.aria-label]="mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'"
+            [attr.aria-expanded]="mobileOpen"
+            (click)="mobileOpen = !mobileOpen">
+      <mat-icon>{{mobileOpen ? 'close' : 'menu'}}</mat-icon>
+    </button>
+    <aside class="sidebar" [class.mobile-open]="mobileOpen" [style.background]="bgColor">
       <div class="sidebar-logo">
         <span class="logo-icon">{{logoEmoji}}</span> SteevaCare
       </div>
@@ -29,6 +37,7 @@ export interface NavLink {
            class="nav-item"
            [class.active]="link.route === activeRoute"
            [routerLink]="link.route"
+           (click)="mobileOpen = false"
            style="position:relative;">
           <mat-icon>{{link.icon}}</mat-icon>
           {{link.label}}
@@ -63,6 +72,8 @@ export interface NavLink {
   `]
 })
 export class SidebarComponent {
+  mobileOpen = false;
+
   @Input() role: SidebarRole = 'patient';
   @Input() activeRoute = '';
   @Input() badgeCounts: Record<string, number> = {};
