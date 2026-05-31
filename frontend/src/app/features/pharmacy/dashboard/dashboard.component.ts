@@ -255,6 +255,8 @@ export class PharmacyDashboardComponent implements OnInit, OnDestroy {
 
   @ViewChild('codeInput') codeInput?: ElementRef<HTMLInputElement>;
 
+  @ViewChild('codeInput') codeInput?: ElementRef<HTMLInputElement>;
+
   loading       = true;
   searchLoading = false;
   deliverLoading= false;
