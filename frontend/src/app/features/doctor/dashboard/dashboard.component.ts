@@ -225,7 +225,7 @@ export class DoctorDashboardComponent implements OnInit {
   private api      = inject(ApiService);
   private snackBar = inject(MatSnackBar);
 
-  loading   = true;        // ← CORRECTION : loading ajouté
+  loading   = true;
   all: Appointment[] = [];
   actionLoading: number | null = null;
   showRejectDialog = false;
@@ -242,7 +242,10 @@ export class DoctorDashboardComponent implements OnInit {
     this.loading = true;
     this.api.get<Appointment[]>('/api/appointments/doctor/me').subscribe({
       next: (d) => { this.all = d; this.loading = false; },
-      error: () => { this.loading = false; }   // ← CORRECTION : gestion erreur
+      error: () => {
+        this.snackBar.open('Impossible de charger les rendez-vous', '✕', { duration: 4000 });
+        this.loading = false;
+      }
     });
   }
 
