@@ -6,7 +6,7 @@ import { AuthService } from '../services/auth.service';
 export const roleGuard: CanActivateFn = (route, state) => {
   const authService    = inject(AuthService);
   const router         = inject(Router);
-  const requiredRoles: string[] = route.data?.['roles'] ?? [];
+  const requiredRoles: string[] = route.data?.['roles'] ?? route.parent?.data?.['roles'] ?? [];
 
   if (requiredRoles.length === 0) return true;
 
