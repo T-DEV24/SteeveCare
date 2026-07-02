@@ -18,6 +18,7 @@ import { Observable, Subject, map, startWith, switchMap, takeUntil } from 'rxjs'
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { VideoSignalingService, VideoSignalMessage } from '../../../core/services/video-signaling.service';
 import { SidebarComponent } from '../../../shared/components/sidebar/sidebar.component';
 import { DateFrPipe } from '../../../shared/pipes/date-fr.pipe';
 import { InitialsPipe } from '../../../shared/pipes/initials.pipe';
@@ -299,6 +300,46 @@ interface PreviousConsultation {
               </section>
             </mat-tab>
 
+            <mat-tab label="Téléconsultation vidéo">
+              <section class="tab-body">
+                <mat-card class="video-card">
+                  <div class="section-title-row">
+                    <h2><mat-icon>videocam</mat-icon> Salle vidéo WebRTC</h2>
+                    <span class="video-status" [class.video-status--active]="videoCallActive">
+                      {{videoStatus}}
+                    </span>
+                  </div>
+
+                  <div class="video-grid">
+                    <div class="video-tile video-tile--remote">
+                      <video #remoteVideo autoplay playsinline></video>
+                      <span>Patient</span>
+                    </div>
+                    <div class="video-tile video-tile--local">
+                      <video #localVideo autoplay muted playsinline></video>
+                      <span>Vous</span>
+                    </div>
+                  </div>
+
+                  <div class="video-actions">
+                    <button mat-raised-button color="primary" type="button" [disabled]="videoCallActive" (click)="startVideoCall()">
+                      <mat-icon>video_call</mat-icon>
+                      Démarrer la vidéo
+                    </button>
+                    <button mat-stroked-button color="warn" type="button" [disabled]="!videoCallActive" (click)="hangupVideoCall()">
+                      <mat-icon>call_end</mat-icon>
+                      Raccrocher
+                    </button>
+                  </div>
+
+                  <p class="video-help">
+                    Signalisation minimale via WebSocket/STOMP : SDP offer/answer et ICE candidates sont relayés
+                    sur la salle du rendez-vous.
+                  </p>
+                </mat-card>
+              </section>
+            </mat-tab>
+
             <mat-tab label="Dossier patient">
               <section class="tab-body">
                 <mat-card class="record-card">
@@ -416,6 +457,16 @@ interface PreviousConsultation {
     .record-item span { display: block; margin-bottom: 8px; color: #7F8C8D; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
     .record-item strong { color: #173B52; font-size: 22px; }
     .record-item p { margin: 0; color: #2C3E50; line-height: 1.6; }
+    .video-card { border-radius: 18px !important; padding: 22px; box-shadow: 0 10px 34px rgba(13,51,73,0.08) !important; }
+    .video-status { padding: 6px 12px; border-radius: 999px; background: #ECF0F1; color: #566573; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.8px; }
+    .video-status--active { background: #E8F8F1; color: #0B5345; }
+    .video-grid { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 16px; align-items: stretch; }
+    .video-tile { position: relative; min-height: 220px; overflow: hidden; border-radius: 18px; background: #17202A; border: 1px solid rgba(23,32,42,0.12); }
+    .video-tile--remote { min-height: 420px; }
+    .video-tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .video-tile span { position: absolute; left: 12px; bottom: 12px; padding: 6px 10px; border-radius: 999px; color: white; background: rgba(0,0,0,0.55); font-size: 12px; font-weight: 800; }
+    .video-actions { display: flex; justify-content: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+    .video-help { margin: 16px 0 0; color: #6D7D88; text-align: center; }
     .history-list { display: flex; flex-direction: column; gap: 14px; }
     .history-item { padding: 18px; border-radius: 16px; background: #F7F9FB; border: 1px solid #E7EDF2; }
     .history-item div { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; color: #173B52; }
@@ -425,15 +476,19 @@ interface PreviousConsultation {
     .empty-state mat-icon { font-size: 42px; width: 42px; height: 42px; margin-bottom: 8px; }
     @keyframes pulseAlert { 0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,0.25); } 50% { box-shadow: 0 0 0 10px rgba(231,76,60,0); } }
     @media print { body * { visibility: hidden !important; } .print-prescription, .print-prescription * { visibility: visible !important; } .print-prescription { position: fixed; inset: 0; margin: 0 !important; max-width: none !important; box-shadow: none !important; } }
-    @media (max-width: 1100px) { .form-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .form-grid, .video-grid { grid-template-columns: 1fr; } .video-tile--remote { min-height: 320px; } }
     @media (max-width: 760px) { .consultation-page { padding: 16px; } .consultation-header, .patient-heading, .prescription-header, .history-item div { align-items: flex-start; flex-direction: column; } .timer-card { width: 100%; } .record-grid, .medication-row { grid-template-columns: 1fr; } .record-item--wide { grid-column: auto; } .section-title-row { align-items: flex-start; flex-direction: column; } .preview-actions, .page-actions { width: 100%; } .preview-actions button, .page-actions button { width: 100%; } }
   `]
 })
 export class ConsultationComponent implements OnInit, OnDestroy {
   @ViewChild('prescriptionPreview') private prescriptionPreview?: ElementRef<HTMLElement>;
+  @ViewChild('localVideo') private localVideo?: ElementRef<HTMLVideoElement>;
+  @ViewChild('remoteVideo') private remoteVideo?: ElementRef<HTMLVideoElement>;
 
   private readonly destroy$ = new Subject<void>();
   private timerIntervalId: ReturnType<typeof setInterval> | null = null;
+  private peerConnection: RTCPeerConnection | null = null;
+  private localStream: MediaStream | null = null;
   private consultationStartedAt = new Date();
   private readonly fb = inject(FormBuilder);
 
@@ -442,6 +497,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly notification = inject(NotificationService);
+  private readonly videoSignaling = inject(VideoSignalingService);
   private readonly snackBar = inject(MatSnackBar);
 
   loading = true;
@@ -450,6 +506,8 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   medicalRecordLoading = false;
   historyLoading = false;
   elapsedSeconds = 0;
+  videoCallActive = false;
+  videoStatus = 'En attente';
   today = new Date();
 
   appointment: Appointment | null = null;
@@ -504,6 +562,8 @@ export class ConsultationComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     if (this.timerIntervalId !== null) clearInterval(this.timerIntervalId);
+    this.hangupVideoCall(false);
+    this.videoSignaling.disconnect();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -558,14 +618,16 @@ export class ConsultationComponent implements OnInit, OnDestroy {
     this.saving = true;
 
     const body = this.buildConsultationBody();
-    this.api.post<any>('/api/consultations', body)
+    this.api.post<any>('/api/consultations/start', body)
       .pipe(
         switchMap((consultation) => {
           const medicines = this.prescriptionMedications;
-          if (medicines.length === 0) return this.completeAppointment();
+          if (medicines.length === 0) {
+            return this.api.patch(`/api/consultations/${consultation.id}/close`, { notesMedecin: body['notesMedecin'] });
+          }
 
           return this.api.post(`/api/consultations/${consultation.id}/prescriptions`, this.buildPrescriptionBody())
-            .pipe(switchMap(() => this.completeAppointment()));
+            .pipe(switchMap(() => this.api.patch(`/api/consultations/${consultation.id}/close`, { notesMedecin: body['notesMedecin'] })));
         }),
         takeUntil(this.destroy$)
       )
@@ -655,6 +717,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
           }
           this.loadPatientMedicalRecord(this.appointment.patientId);
           this.loadPatientHistory(this.appointment.patientId);
+          this.connectVideoRoom();
         },
         error: () => {
           this.loading = false;
@@ -759,14 +822,20 @@ export class ConsultationComponent implements OnInit, OnDestroy {
     const value = this.consultationForm.getRawValue();
     return {
       appointmentId: this.appointment!.id,
-      symptomes: value.symptomes,
-      diagnostic: value.diagnostic,
-      notesMedecin: value.notesMedecin,
-      refererSpecialiste: value.refererSpecialiste,
-      specialisteCible: value.specialisteCible,
-      debutAt: this.consultationStartedAt.toISOString(),
-      finAt: new Date().toISOString()
+      notesMedecin: this.buildDoctorNotes(value),
     };
+  }
+
+  private buildDoctorNotes(value: ReturnType<typeof this.consultationForm.getRawValue>): string {
+    const lines = [
+      `Symptômes : ${value.symptomes || 'Non renseigné'}`,
+      `Diagnostic : ${value.diagnostic || 'Non renseigné'}`,
+      `Observations : ${value.notesMedecin || 'Non renseigné'}`
+    ];
+    if (value.refererSpecialiste) {
+      lines.push(`Référence spécialiste : ${value.specialisteCible || 'Non renseigné'}`);
+    }
+    return lines.join('\n');
   }
 
   private buildPrescriptionBody(): Record<string, unknown> {
@@ -782,7 +851,112 @@ export class ConsultationComponent implements OnInit, OnDestroy {
     };
   }
 
-  private completeAppointment(): Observable<unknown> {
-    return this.api.patch(`/api/appointments/${this.appointment!.id}/status`, { status: 'COMPLETED' });
+  async startVideoCall(): Promise<void> {
+    if (!this.appointment || this.videoCallActive) return;
+
+    try {
+      await this.ensurePeerConnection();
+      const offer = await this.peerConnection!.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+      await this.peerConnection!.setLocalDescription(offer);
+      await this.sendVideoSignal('offer', { sdp: offer });
+      this.videoCallActive = true;
+      this.videoStatus = 'Appel en cours';
+    } catch (error) {
+      console.error(error);
+      this.videoStatus = 'Erreur caméra/micro';
+      this.notification.error('Impossible de démarrer la téléconsultation vidéo.', 4000);
+    }
+  }
+
+  hangupVideoCall(notifyRemote = true): void {
+    if (notifyRemote && this.appointment) {
+      void this.sendVideoSignal('hangup', {});
+    }
+    this.peerConnection?.close();
+    this.peerConnection = null;
+    this.localStream?.getTracks().forEach(track => track.stop());
+    this.localStream = null;
+    if (this.localVideo?.nativeElement) this.localVideo.nativeElement.srcObject = null;
+    if (this.remoteVideo?.nativeElement) this.remoteVideo.nativeElement.srcObject = null;
+    this.videoCallActive = false;
+    this.videoStatus = 'En attente';
+  }
+
+  private connectVideoRoom(): void {
+    if (!this.appointment) return;
+    this.videoSignaling.watchRoom(this.videoRoomId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((message) => void this.handleVideoSignal(message));
+    void this.sendVideoSignal('join', { role: 'DOCTOR' });
+  }
+
+  private async ensurePeerConnection(): Promise<void> {
+    if (this.peerConnection) return;
+
+    this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    if (this.localVideo?.nativeElement) this.localVideo.nativeElement.srcObject = this.localStream;
+
+    this.peerConnection = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
+
+    this.localStream.getTracks().forEach(track => this.peerConnection!.addTrack(track, this.localStream!));
+    this.peerConnection.ontrack = (event) => {
+      if (this.remoteVideo?.nativeElement) this.remoteVideo.nativeElement.srcObject = event.streams[0];
+    };
+    this.peerConnection.onicecandidate = (event) => {
+      if (event.candidate) void this.sendVideoSignal('ice', { candidate: event.candidate });
+    };
+    this.peerConnection.onconnectionstatechange = () => {
+      const state = this.peerConnection?.connectionState;
+      this.videoStatus = state === 'connected' ? 'Connecté' : state === 'failed' ? 'Connexion échouée' : 'Appel en cours';
+    };
+  }
+
+  private async handleVideoSignal(message: VideoSignalMessage): Promise<void> {
+    if (message.senderId === this.videoSenderId) return;
+
+    if (message.type === 'hangup') {
+      this.hangupVideoCall(false);
+      return;
+    }
+
+    if (message.type === 'offer') {
+      await this.ensurePeerConnection();
+      await this.peerConnection!.setRemoteDescription(message.payload?.['sdp'] as RTCSessionDescriptionInit);
+      const answer = await this.peerConnection!.createAnswer();
+      await this.peerConnection!.setLocalDescription(answer);
+      await this.sendVideoSignal('answer', { sdp: answer });
+      this.videoCallActive = true;
+      this.videoStatus = 'Appel en cours';
+      return;
+    }
+
+    if (message.type === 'answer' && this.peerConnection) {
+      await this.peerConnection.setRemoteDescription(message.payload?.['sdp'] as RTCSessionDescriptionInit);
+      return;
+    }
+
+    if (message.type === 'ice' && this.peerConnection && message.payload?.['candidate']) {
+      await this.peerConnection.addIceCandidate(message.payload['candidate'] as RTCIceCandidateInit);
+    }
+  }
+
+  private get videoRoomId(): string {
+    return `appointment-${this.appointment!.id}`;
+  }
+
+  private get videoSenderId(): string {
+    return `doctor-${this.auth.userId ?? 'anonymous'}`;
+  }
+
+  private sendVideoSignal(type: VideoSignalMessage['type'], payload: Record<string, unknown>): Promise<void> {
+    return this.videoSignaling.send({
+      roomId: this.videoRoomId,
+      type,
+      senderId: this.videoSenderId,
+      payload
+    });
   }
 }
+
