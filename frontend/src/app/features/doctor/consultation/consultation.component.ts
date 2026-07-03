@@ -1,4 +1,4 @@
-// src/app/features/doctor/consultation/consultation.component.ts
+﻿// src/app/features/doctor/consultation/consultation.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -102,8 +102,8 @@ interface PreviousConsultation {
                 <p class="header-kicker">Consultation en cours</p>
                 <h1>{{appointment.patientPrenom}} {{appointment.patientNom}}</h1>
                 <p>
-                  {{ appointment.dateHeure | dateFr }} —
-                  {{appointment.type === 'VIDEO' ? 'Vidéo' : 'Messagerie'}} —
+                  {{ appointment.dateHeure | dateFr }} â€”
+                  {{appointment.type === 'VIDEO' ? 'VidÃ©o' : 'Messagerie'}} â€”
                   Dr {{appointment.doctorPrenom}} {{appointment.doctorNom}}
                 </p>
               </div>
@@ -112,13 +112,13 @@ interface PreviousConsultation {
             <div class="timer-card" [class.timer-card--alert]="consultationOvertime">
               <mat-icon>{{consultationOvertime ? 'timer_off' : 'timer'}}</mat-icon>
               <span>{{formattedTimer}}</span>
-              <small>{{consultationOvertime ? 'Plus de 30 min' : 'Chronomètre'}}</small>
+              <small>{{consultationOvertime ? 'Plus de 30 min' : 'ChronomÃ¨tre'}}</small>
             </div>
           </header>
 
           <mat-card class="reason-card">
             <h2>Motif de consultation</h2>
-            <p>“{{appointment.motif || 'Aucun motif renseigné'}}”</p>
+            <p>â€œ{{appointment.motif || 'Aucun motif renseignÃ©'}}â€</p>
           </mat-card>
 
           <mat-tab-group animationDuration="250ms" class="consultation-tabs">
@@ -130,10 +130,10 @@ interface PreviousConsultation {
                       <h2><mat-icon>clinical_notes</mat-icon> Notes cliniques</h2>
 
                       <mat-form-field appearance="outline">
-                        <mat-label>Symptômes</mat-label>
+                        <mat-label>SymptÃ´mes</mat-label>
                         <textarea matInput rows="4" formControlName="symptomes"
                                   [matAutocomplete]="symptomsAuto"
-                                  placeholder="Ex: Fièvre, toux sèche, céphalées..."></textarea>
+                                  placeholder="Ex: FiÃ¨vre, toux sÃ¨che, cÃ©phalÃ©es..."></textarea>
                         <mat-autocomplete #symptomsAuto="matAutocomplete" (optionSelected)="appendAutocompleteValue('symptomes', $event.option.value)">
                           <mat-option *ngFor="let symptom of filteredSymptoms$ | async; trackBy: trackByValue" [value]="symptom">
                             {{symptom}}
@@ -145,7 +145,7 @@ interface PreviousConsultation {
                         <mat-label>Diagnostic</mat-label>
                         <textarea matInput rows="4" formControlName="diagnostic"
                                   [matAutocomplete]="diagnosisAuto"
-                                  placeholder="Ex: J06.9 Infection aiguë des voies respiratoires..."></textarea>
+                                  placeholder="Ex: J06.9 Infection aiguÃ« des voies respiratoires..."></textarea>
                         <mat-autocomplete #diagnosisAuto="matAutocomplete" (optionSelected)="appendAutocompleteValue('diagnostic', $event.option.value)">
                           <mat-option *ngFor="let diagnosis of filteredDiagnoses$ | async; trackBy: trackByValue" [value]="diagnosis">
                             {{diagnosis}}
@@ -156,13 +156,13 @@ interface PreviousConsultation {
                       <mat-form-field appearance="outline">
                         <mat-label>Observations et recommandations</mat-label>
                         <textarea matInput rows="5" formControlName="notesMedecin"
-                                  placeholder="Observations cliniques, examens complémentaires, conseils..."></textarea>
+                                  placeholder="Observations cliniques, examens complÃ©mentaires, conseils..."></textarea>
                       </mat-form-field>
 
                       <div class="referral-box">
-                        <mat-checkbox formControlName="refererSpecialiste">Référer à un spécialiste</mat-checkbox>
+                        <mat-checkbox formControlName="refererSpecialiste">RÃ©fÃ©rer Ã  un spÃ©cialiste</mat-checkbox>
                         <mat-form-field appearance="outline" *ngIf="consultationForm.get('refererSpecialiste')?.value">
-                          <mat-label>Spécialiste cible</mat-label>
+                          <mat-label>SpÃ©cialiste cible</mat-label>
                           <mat-select formControlName="specialisteCible">
                             <mat-option *ngFor="let specialist of specialists; trackBy: trackByValue" [value]="specialist">
                               {{specialist}}
@@ -184,30 +184,30 @@ interface PreviousConsultation {
                       <div formArrayName="medicaments" class="medication-list">
                         <div class="medication-item" *ngFor="let medication of medicaments.controls; let i = index; trackBy: trackByIndex" [formGroupName]="i">
                           <div class="medication-item__header">
-                            <strong>Médicament {{i + 1}}</strong>
-                            <button mat-icon-button color="warn" type="button" aria-label="Supprimer ce médicament" [disabled]="medicaments.length === 1" (click)="removeMedication(i)">
+                            <strong>MÃ©dicament {{i + 1}}</strong>
+                            <button mat-icon-button color="warn" type="button" aria-label="Supprimer ce mÃ©dicament" [disabled]="medicaments.length === 1" (click)="removeMedication(i)">
                               <mat-icon>delete</mat-icon>
                             </button>
                           </div>
 
                           <mat-form-field appearance="outline">
-                            <mat-label>Nom du médicament</mat-label>
-                            <input matInput formControlName="nom" placeholder="Ex: Paracétamol 500mg">
+                            <mat-label>Nom du mÃ©dicament</mat-label>
+                            <input matInput formControlName="nom" placeholder="Ex: ParacÃ©tamol 500mg">
                           </mat-form-field>
 
                           <mat-form-field appearance="outline">
                             <mat-label>Posologie</mat-label>
-                            <input matInput formControlName="posologie" placeholder="Ex: 1 comprimé matin et soir">
+                            <input matInput formControlName="posologie" placeholder="Ex: 1 comprimÃ© matin et soir">
                           </mat-form-field>
 
                           <div class="medication-row">
                             <mat-form-field appearance="outline">
-                              <mat-label>Durée (jours)</mat-label>
+                              <mat-label>DurÃ©e (jours)</mat-label>
                               <input matInput type="number" min="1" formControlName="dureeJours">
                             </mat-form-field>
                             <mat-form-field appearance="outline">
                               <mat-label>Instructions</mat-label>
-                              <input matInput formControlName="instructions" placeholder="Après repas">
+                              <input matInput formControlName="instructions" placeholder="AprÃ¨s repas">
                             </mat-form-field>
                           </div>
                         </div>
@@ -217,7 +217,7 @@ interface PreviousConsultation {
                         <mat-label>Pharmacie</mat-label>
                         <mat-select [(ngModel)]="selectedPharmacyId" [ngModelOptions]="{standalone: true}">
                           <mat-option *ngFor="let ph of pharmacies; trackBy: trackByItem" [value]="ph.id">
-                            {{ph.nom}} — {{ph.ville || 'Ville non renseignée'}}
+                            {{ph.nom}} â€” {{ph.ville || 'Ville non renseignÃ©e'}}
                           </mat-option>
                         </mat-select>
                       </mat-form-field>
@@ -226,7 +226,7 @@ interface PreviousConsultation {
 
                   <mat-card class="prescription-preview-card">
                     <div class="section-title-row">
-                      <h2><mat-icon>picture_as_pdf</mat-icon> Ordonnance générée</h2>
+                      <h2><mat-icon>picture_as_pdf</mat-icon> Ordonnance gÃ©nÃ©rÃ©e</h2>
                       <div class="preview-actions">
                         <button mat-stroked-button type="button" (click)="printPrescription()">
                           <mat-icon>print</mat-icon>
@@ -235,7 +235,7 @@ interface PreviousConsultation {
                         <button mat-raised-button color="primary" type="button" [disabled]="prescriptionSending" (click)="sendPrescriptionToPharmacy()">
                           <mat-progress-spinner *ngIf="prescriptionSending" diameter="18" mode="indeterminate"></mat-progress-spinner>
                           <mat-icon *ngIf="!prescriptionSending">local_pharmacy</mat-icon>
-                          Envoyer à la pharmacie
+                          Envoyer Ã  la pharmacie
                         </button>
                       </div>
                     </div>
@@ -245,41 +245,41 @@ interface PreviousConsultation {
                         <img src="assets/brand/steevacare-logo.png" alt="SteevaCare">
                         <div>
                           <h3>Dr {{appointment.doctorPrenom}} {{appointment.doctorNom}}</h3>
-                          <p>{{appointment.doctorSpecialite || 'Médecine générale'}}</p>
+                          <p>{{appointment.doctorSpecialite || 'MÃ©decine gÃ©nÃ©rale'}}</p>
                           <p>Date : {{today | date:'dd/MM/yyyy'}}</p>
                         </div>
                       </div>
 
                       <div class="prescription-patient">
                         <strong>Patient : {{appointment.patientPrenom}} {{appointment.patientNom}}</strong>
-                        <span>Motif : {{appointment.motif || '—'}}</span>
+                        <span>Motif : {{appointment.motif || 'â€”'}}</span>
                       </div>
 
                       <h4>Prescription</h4>
                       <table>
                         <thead>
                           <tr>
-                            <th>Médicament</th>
+                            <th>MÃ©dicament</th>
                             <th>Posologie</th>
-                            <th>Durée</th>
+                            <th>DurÃ©e</th>
                             <th>Instructions</th>
                           </tr>
                         </thead>
                         <tbody>
                           <tr *ngFor="let medication of prescriptionMedications; trackBy: trackByItem">
-                            <td>{{medication.nom || '—'}}</td>
-                            <td>{{medication.posologie || '—'}}</td>
-                            <td>{{medication.dureeJours ? medication.dureeJours + ' jours' : '—'}}</td>
-                            <td>{{medication.instructions || '—'}}</td>
+                            <td>{{medication.nom || 'â€”'}}</td>
+                            <td>{{medication.posologie || 'â€”'}}</td>
+                            <td>{{medication.dureeJours ? medication.dureeJours + ' jours' : 'â€”'}}</td>
+                            <td>{{medication.instructions || 'â€”'}}</td>
                           </tr>
                           <tr *ngIf="prescriptionMedications.length === 0">
-                            <td colspan="4">Aucun médicament renseigné.</td>
+                            <td colspan="4">Aucun mÃ©dicament renseignÃ©.</td>
                           </tr>
                         </tbody>
                       </table>
 
                       <div class="prescription-footer">
-                        <p>Signature du médecin</p>
+                        <p>Signature du mÃ©decin</p>
                         <strong>Dr {{appointment.doctorNom}}</strong>
                       </div>
                     </div>
@@ -344,7 +344,7 @@ interface PreviousConsultation {
               <section class="tab-body">
                 <mat-card class="record-card">
                   <div class="section-title-row">
-                    <h2><mat-icon>folder_shared</mat-icon> Résumé médical</h2>
+                    <h2><mat-icon>folder_shared</mat-icon> RÃ©sumÃ© mÃ©dical</h2>
                     <mat-progress-spinner *ngIf="medicalRecordLoading" diameter="28" mode="indeterminate"></mat-progress-spinner>
                   </div>
 
@@ -358,7 +358,7 @@ interface PreviousConsultation {
                       <p>{{formatMedicalList(medicalRecord?.allergies)}}</p>
                     </div>
                     <div class="record-item record-item--wide">
-                      <span>Antécédents</span>
+                      <span>AntÃ©cÃ©dents</span>
                       <p>{{formatMedicalList(medicalRecord?.antecedents || medicalRecord?.chronicDiseases)}}</p>
                     </div>
                     <div class="record-item record-item--wide" *ngIf="medicalRecord?.notes">
@@ -374,13 +374,13 @@ interface PreviousConsultation {
               <section class="tab-body">
                 <mat-card class="history-card">
                   <div class="section-title-row">
-                    <h2><mat-icon>history</mat-icon> Consultations précédentes</h2>
+                    <h2><mat-icon>history</mat-icon> Consultations prÃ©cÃ©dentes</h2>
                     <mat-progress-spinner *ngIf="historyLoading" diameter="28" mode="indeterminate"></mat-progress-spinner>
                   </div>
 
                   <div *ngIf="!historyLoading && previousConsultations.length === 0" class="empty-state">
                     <mat-icon>event_busy</mat-icon>
-                    <p>Aucune consultation précédente trouvée.</p>
+                    <p>Aucune consultation prÃ©cÃ©dente trouvÃ©e.</p>
                   </div>
 
                   <div class="history-list" *ngIf="!historyLoading && previousConsultations.length > 0">
@@ -389,9 +389,9 @@ interface PreviousConsultation {
                         <strong>{{item.date || item.dateHeure | dateFr}}</strong>
                         <span>Dr {{item.doctorPrenom || ''}} {{item.doctorNom || ''}}</span>
                       </div>
-                      <p><b>Diagnostic :</b> {{item.diagnostic || 'Non renseigné'}}</p>
-                      <p><b>Notes :</b> {{item.notesMedecin || '—'}}</p>
-                      <p><b>Traitement :</b> {{item.traitement || '—'}}</p>
+                      <p><b>Diagnostic :</b> {{item.diagnostic || 'Non renseignÃ©'}}</p>
+                      <p><b>Notes :</b> {{item.notesMedecin || 'â€”'}}</p>
+                      <p><b>Traitement :</b> {{item.traitement || 'â€”'}}</p>
                     </article>
                   </div>
                 </mat-card>
@@ -516,27 +516,27 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   previousConsultations: PreviousConsultation[] = [];
 
   readonly commonSymptoms = [
-    'Fièvre', 'Toux sèche', 'Toux productive', 'Céphalées', 'Douleurs abdominales',
-    'Nausées', 'Vomissements', 'Diarrhée', 'Fatigue intense', 'Vertiges',
-    'Dyspnée', 'Douleur thoracique', 'Éruption cutanée', 'Courbatures', 'Rhinorrhée'
+    'FiÃ¨vre', 'Toux sÃ¨che', 'Toux productive', 'CÃ©phalÃ©es', 'Douleurs abdominales',
+    'NausÃ©es', 'Vomissements', 'DiarrhÃ©e', 'Fatigue intense', 'Vertiges',
+    'DyspnÃ©e', 'Douleur thoracique', 'Ã‰ruption cutanÃ©e', 'Courbatures', 'RhinorrhÃ©e'
   ];
 
   readonly commonDiagnoses = [
-    'J06.9 Infection aiguë des voies respiratoires supérieures',
-    'A09 Gastro-entérite infectieuse présumée',
+    'J06.9 Infection aiguÃ« des voies respiratoires supÃ©rieures',
+    'A09 Gastro-entÃ©rite infectieuse prÃ©sumÃ©e',
     'I10 Hypertension essentielle',
-    'E11 Diabète sucré de type 2',
+    'E11 DiabÃ¨te sucrÃ© de type 2',
     'J45 Asthme',
     'N39.0 Infection urinaire',
     'M54.5 Lombalgie',
-    'R51 Céphalée',
+    'R51 CÃ©phalÃ©e',
     'K29 Gastrite',
-    'B34 Infection virale sans précision'
+    'B34 Infection virale sans prÃ©cision'
   ];
 
   readonly specialists = [
-    'Cardiologue', 'Dermatologue', 'Endocrinologue', 'Gastro-entérologue',
-    'Gynécologue', 'Neurologue', 'Ophtalmologue', 'ORL', 'Pédiatre',
+    'Cardiologue', 'Dermatologue', 'Endocrinologue', 'Gastro-entÃ©rologue',
+    'GynÃ©cologue', 'Neurologue', 'Ophtalmologue', 'ORL', 'PÃ©diatre',
     'Pneumologue', 'Psychiatre', 'Urologue'
   ];
 
@@ -595,7 +595,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   }
 
   get bloodType(): string {
-    return this.medicalRecord?.groupeSanguin ?? this.medicalRecord?.bloodType ?? 'Non renseigné';
+    return this.medicalRecord?.groupeSanguin ?? this.medicalRecord?.bloodType ?? 'Non renseignÃ©';
   }
 
   addMedication(): void {
@@ -634,7 +634,7 @@ export class ConsultationComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.saving = false;
-          this.notification.success('Consultation terminée ✅', 4000);
+          this.notification.success('Consultation terminÃ©e âœ…', 4000);
           this.router.navigate(['/doctor/dashboard']);
         },
         error: (err) => {
@@ -656,12 +656,12 @@ export class ConsultationComponent implements OnInit, OnDestroy {
   sendPrescriptionToPharmacy(): void {
     if (!this.appointment || this.prescriptionSending) return;
     if (this.prescriptionMedications.length === 0) {
-      this.notification.warning('Ajoutez au moins un médicament avant l’envoi.', 3000);
+      this.notification.warning('Ajoutez au moins un mÃ©dicament avant lâ€™envoi.', 3000);
       return;
     }
 
     if (!this.selectedPharmacyId) {
-      this.snackBar.open('Sélectionnez une pharmacie', '✕', { duration: 4000 });
+      this.snackBar.open('SÃ©lectionnez une pharmacie', 'âœ•', { duration: 4000 });
       return;
     }
 
@@ -671,18 +671,18 @@ export class ConsultationComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.prescriptionSending = false;
-          this.snackBar.open('Ordonnance envoyée — Code: ' + (res.codeRetrait ?? '—'), '✕', { duration: 8000 });
+          this.snackBar.open('Ordonnance envoyÃ©e â€” Code: ' + (res.codeRetrait ?? 'â€”'), 'âœ•', { duration: 8000 });
         },
         error: (err) => {
           this.prescriptionSending = false;
-          this.notification.error(err.error?.erreur ?? err.error?.message ?? 'Impossible d’envoyer l’ordonnance.', 4000);
+          this.notification.error(err.error?.erreur ?? err.error?.message ?? 'Impossible dâ€™envoyer lâ€™ordonnance.', 4000);
         }
       });
   }
 
   formatMedicalList(value: string[] | string | undefined): string {
-    if (Array.isArray(value)) return value.length ? value.join(', ') : 'Non renseigné';
-    return value?.trim() || 'Non renseigné';
+    if (Array.isArray(value)) return value.length ? value.join(', ') : 'Non renseignÃ©';
+    return value?.trim() || 'Non renseignÃ©';
   }
 
   trackByItem(_: number, item: any): unknown {
