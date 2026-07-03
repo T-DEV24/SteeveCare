@@ -8,6 +8,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.hibernate.LazyInitializationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -72,6 +74,32 @@ public class GlobalExceptionHandler {
         body.put("statut", 401);
         body.put("timestamp", LocalDateTime.now().toString());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+
+    // ── Route non trouvée ────────────────────────────────────────────────
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoHandlerFoundException(
+        NoHandlerFoundException ex
+    ) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("erreur", "Route non trouvée : " + ex.getHttpMethod() + " " + ex.getRequestURL());
+        body.put("statut", 404);
+        body.put("timestamp", LocalDateTime.now().toString());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    // ── Chargement lazy Hibernate hors session ───────────────────────────
+    @ExceptionHandler(LazyInitializationException.class)
+    public ResponseEntity<Map<String, Object>> handleLazyInitializationException(
+        LazyInitializationException ex
+    ) {
+        log.error("Erreur de chargement lazy Hibernate : ", ex);
+        Map<String, Object> body = new HashMap<>();
+        body.put("erreur", "Erreur de chargement de données liées — voir logs serveur");
+        body.put("statut", 500);
+        body.put("timestamp", LocalDateTime.now().toString());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
     }
 
     // ── Erreur générique ──────────────────────────────────────────────────
