@@ -3,6 +3,7 @@ package com.quamtechs.steevacare.controller;
 
 import com.quamtechs.steevacare.dto.request.UpdateMedicalRecordRequest;
 import com.quamtechs.steevacare.dto.response.UserResponse;
+import com.quamtechs.steevacare.dto.response.MedicalRecordResponse;
 import com.quamtechs.steevacare.entity.MedicalRecord;
 import com.quamtechs.steevacare.entity.User;
 import com.quamtechs.steevacare.repository.MedicalRecordRepository;
@@ -38,7 +39,7 @@ public class PatientController {
      * GET /api/patients/me/medical-record — Dossier médical du patient connecté
      */
     @GetMapping("/me/medical-record")
-    public ResponseEntity<MedicalRecord> getMyMedicalRecord(
+    public ResponseEntity<MedicalRecordResponse> getMyMedicalRecord(
         @AuthenticationPrincipal User currentUser
     ) {
         MedicalRecord record = medicalRecordRepository.findByPatient(currentUser)
@@ -49,14 +50,14 @@ public class PatientController {
                     .build();
                 return medicalRecordRepository.save(newRecord);
             });
-        return ResponseEntity.ok(record);
+        return ResponseEntity.ok(toMedicalRecordResponse(record));
     }
 
     /**
      * PATCH /api/patients/me/medical-record — Mettre à jour le dossier médical
      */
     @PatchMapping("/me/medical-record")
-    public ResponseEntity<MedicalRecord> updateMyMedicalRecord(
+    public ResponseEntity<MedicalRecordResponse> updateMyMedicalRecord(
         @AuthenticationPrincipal User currentUser,
         @Valid @RequestBody UpdateMedicalRecordRequest request
     ) {
@@ -73,6 +74,16 @@ public class PatientController {
             record.setVaccinations(request.vaccinations());
         }
 
-        return ResponseEntity.ok(medicalRecordRepository.save(record));
+        return ResponseEntity.ok(toMedicalRecordResponse(medicalRecordRepository.save(record)));
+    }
+
+    private MedicalRecordResponse toMedicalRecordResponse(MedicalRecord record) {
+        return new MedicalRecordResponse(
+            record.getId(),
+            record.getAntecedentsFamiliaux(),
+            record.getTraitementEnCours(),
+            record.getVaccinations(),
+            record.getUpdatedAt()
+        );
     }
 }
