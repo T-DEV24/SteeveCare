@@ -1,20 +1,19 @@
 // src/main/java/com/quamtechs/steevacare/controller/PatientController.java
 package com.quamtechs.steevacare.controller;
 
+import com.quamtechs.steevacare.dto.request.UpdateMedicalRecordRequest;
 import com.quamtechs.steevacare.dto.response.UserResponse;
 import com.quamtechs.steevacare.entity.MedicalRecord;
 import com.quamtechs.steevacare.entity.User;
-import com.quamtechs.steevacare.exception.AppException;
 import com.quamtechs.steevacare.repository.MedicalRecordRepository;
 import com.quamtechs.steevacare.service.AdminService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/patients")
@@ -59,19 +58,19 @@ public class PatientController {
     @PatchMapping("/me/medical-record")
     public ResponseEntity<MedicalRecord> updateMyMedicalRecord(
         @AuthenticationPrincipal User currentUser,
-        @RequestBody Map<String, String> updates
+        @Valid @RequestBody UpdateMedicalRecordRequest request
     ) {
         MedicalRecord record = medicalRecordRepository.findByPatient(currentUser)
             .orElseGet(() -> MedicalRecord.builder().patient(currentUser).build());
 
-        if (updates.containsKey("antecedentsFamiliaux")) {
-            record.setAntecedentsFamiliaux(updates.get("antecedentsFamiliaux"));
+        if (request.antecedentsFamiliaux() != null) {
+            record.setAntecedentsFamiliaux(request.antecedentsFamiliaux());
         }
-        if (updates.containsKey("traitementEnCours")) {
-            record.setTraitementEnCours(updates.get("traitementEnCours"));
+        if (request.traitementEnCours() != null) {
+            record.setTraitementEnCours(request.traitementEnCours());
         }
-        if (updates.containsKey("vaccinations")) {
-            record.setVaccinations(updates.get("vaccinations"));
+        if (request.vaccinations() != null) {
+            record.setVaccinations(request.vaccinations());
         }
 
         return ResponseEntity.ok(medicalRecordRepository.save(record));

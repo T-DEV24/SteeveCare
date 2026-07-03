@@ -1,6 +1,7 @@
 // src/main/java/com/quamtechs/steevacare/service/DoctorService.java
 package com.quamtechs.steevacare.service;
 
+import com.quamtechs.steevacare.dto.request.UpdateDoctorProfileRequest;
 import com.quamtechs.steevacare.dto.response.DoctorProfileResponse;
 import com.quamtechs.steevacare.entity.Doctor;
 import com.quamtechs.steevacare.entity.User;
@@ -14,9 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -64,7 +63,7 @@ public class DoctorService {
     // ── Mettre à jour le profil médecin ─────────────────────────────────
 
     @Transactional
-    public DoctorProfileResponse updateProfile(Long userId, Map<String, Object> updates) {
+    public DoctorProfileResponse updateProfile(Long userId, UpdateDoctorProfileRequest request) {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND, "Médecin introuvable"));
 
@@ -72,23 +71,17 @@ public class DoctorService {
             .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,
                 "Profil médecin introuvable"));
 
-        if (updates.containsKey("biographie")) {
-            doctor.setBiographie((String) updates.get("biographie"));
+        if (request.biographie() != null) {
+            doctor.setBiographie(request.biographie());
         }
-        if (updates.containsKey("tarif")) {
-            Object tarif = updates.get("tarif");
-            if (tarif instanceof Number) {
-                doctor.setTarif(new BigDecimal(tarif.toString()));
-            }
+        if (request.tarif() != null) {
+            doctor.setTarif(request.tarif());
         }
-        if (updates.containsKey("anneesExperience")) {
-            Object exp = updates.get("anneesExperience");
-            if (exp instanceof Number) {
-                doctor.setAnneesExperience(((Number) exp).intValue());
-            }
+        if (request.anneesExperience() != null) {
+            doctor.setAnneesExperience(request.anneesExperience());
         }
-        if (updates.containsKey("ville")) {
-            doctor.setVille((String) updates.get("ville"));
+        if (request.ville() != null) {
+            doctor.setVille(request.ville());
         }
 
         return toResponse(doctorRepository.save(doctor));

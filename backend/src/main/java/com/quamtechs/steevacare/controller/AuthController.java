@@ -2,6 +2,7 @@
 package com.quamtechs.steevacare.controller;
 
 import com.quamtechs.steevacare.dto.request.LoginRequest;
+import com.quamtechs.steevacare.dto.request.RefreshTokenRequest;
 import com.quamtechs.steevacare.dto.request.RegisterPatientRequest;
 import com.quamtechs.steevacare.dto.response.AuthResponse;
 import com.quamtechs.steevacare.service.AuthService;
@@ -37,5 +38,15 @@ public class AuthController {
         @Valid @RequestBody LoginRequest request
     ) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    /**
+     * POST /api/auth/refresh-token — Renouvellement des tokens (public)
+     */
+    @PostMapping("/refresh-token")
+    public ResponseEntity<AuthResponse> refreshToken(
+        @Valid @RequestBody RefreshTokenRequest request
+    ) {
+        return ResponseEntity.ok(authService.refreshToken(request));
     }
 }
