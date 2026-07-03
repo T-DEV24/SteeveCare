@@ -20,10 +20,21 @@ public interface PrescriptionRepository extends JpaRepository<Prescription, Long
 
     List<Prescription> findByPharmacyAndTransmiseAPharmacie(User pharmacy, Boolean transmise);
 
+    boolean existsByCodeRetrait(String codeRetrait);
+
+    long countByPharmacyAndDelivreeFalse(User pharmacy);
+
     @Query("SELECT p FROM Prescription p " +
            "JOIN FETCH p.consultation c " +
            "JOIN FETCH c.appointment a " +
            "WHERE p.pharmacy = :pharmacy " +
            "ORDER BY p.createdAt DESC")
     List<Prescription> findByPharmacyWithDetails(@Param("pharmacy") User pharmacy);
+
+    @Query("SELECT p FROM Prescription p " +
+           "JOIN FETCH p.consultation c " +
+           "JOIN FETCH c.appointment a " +
+           "WHERE a.patient = :patient " +
+           "ORDER BY p.createdAt DESC")
+    List<Prescription> findByPatientWithDetails(@Param("patient") User patient);
 }

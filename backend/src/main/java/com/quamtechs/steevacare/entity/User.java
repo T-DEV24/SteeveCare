@@ -62,15 +62,13 @@ public class User implements UserDetails {
     private String ville;
 
     @Builder.Default
-    @Column(nullable = false)
     private Boolean emailNotifications = true;
 
     @Builder.Default
-    @Column(nullable = false)
     private Boolean darkMode = false;
 
     @Builder.Default
-    @Column(nullable = false, length = 5)
+    @Column(length = 5)
     private String language = "fr";
 
     @CreationTimestamp
