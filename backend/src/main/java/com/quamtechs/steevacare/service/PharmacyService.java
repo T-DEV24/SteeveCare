@@ -2,6 +2,7 @@
 package com.quamtechs.steevacare.service;
 
 import com.quamtechs.steevacare.dto.response.PrescriptionResponse;
+import com.quamtechs.steevacare.dto.response.PharmacySummaryResponse;
 import com.quamtechs.steevacare.entity.Prescription;
 import com.quamtechs.steevacare.entity.User;
 import com.quamtechs.steevacare.enums.Role;
@@ -34,6 +35,31 @@ public class PharmacyService {
         return prescriptionRepository.findByPharmacyWithDetails(pharmacyUser)
             .stream()
             .map(this::toResponse)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public long countPendingPrescriptions(Long pharmacyUserId) {
+        User pharmacyUser = getPharmacyUserOrThrow(pharmacyUserId);
+        return prescriptionRepository.countByPharmacyAndDelivreeFalse(pharmacyUser);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PharmacySummaryResponse> getActivePharmacies() {
+        return userRepository.findByRoleAndStatusNot(Role.PHARMACY, com.quamtechs.steevacare.enums.AccountStatus.DELETED)
+            .stream()
+            .filter(user -> user.getStatus() == com.quamtechs.steevacare.enums.AccountStatus.ACTIVE)
+            .map(user -> {
+                var pharmacy = user.getPharmacy();
+                return new PharmacySummaryResponse(
+                    user.getId(),
+                    pharmacy != null ? pharmacy.getNomPharmacie() : user.getNom(),
+                    user.getPrenom(),
+                    pharmacy != null ? pharmacy.getVille() : user.getVille(),
+                    pharmacy != null ? pharmacy.getAdresse() : null,
+                    pharmacy != null && pharmacy.getTelephone() != null ? pharmacy.getTelephone() : user.getTelephone()
+                );
+            })
             .collect(Collectors.toList());
     }
 

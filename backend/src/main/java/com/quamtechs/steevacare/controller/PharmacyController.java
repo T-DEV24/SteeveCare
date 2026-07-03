@@ -2,6 +2,7 @@
 package com.quamtechs.steevacare.controller;
 
 import com.quamtechs.steevacare.dto.response.PrescriptionResponse;
+import com.quamtechs.steevacare.dto.response.PharmacySummaryResponse;
 import com.quamtechs.steevacare.dto.response.UserResponse;
 import com.quamtechs.steevacare.entity.User;
 import com.quamtechs.steevacare.service.AdminService;
@@ -69,5 +70,30 @@ public class PharmacyController {
         return ResponseEntity.ok(
             pharmacyService.markDelivered(id, currentUser.getId())
         );
+    }
+
+    /**
+     * GET /api/pharmacy/prescriptions/pending-count — Nombre d'ordonnances non délivrées.
+     */
+    @GetMapping("/prescriptions/pending-count")
+    public ResponseEntity<Long> getPendingCount(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(pharmacyService.countPendingPrescriptions(currentUser.getId()));
+    }
+}
+
+@RestController
+@RequestMapping("/api/pharmacies")
+@RequiredArgsConstructor
+class PublicPharmacyController {
+
+    private final PharmacyService pharmacyService;
+
+    /**
+     * GET /api/pharmacies/active — Pharmacies actives sélectionnables par les utilisateurs connectés.
+     */
+    @GetMapping("/active")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<PharmacySummaryResponse>> getActivePharmacies() {
+        return ResponseEntity.ok(pharmacyService.getActivePharmacies());
     }
 }
