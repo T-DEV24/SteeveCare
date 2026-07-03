@@ -46,7 +46,8 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Routes publiques
-                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login",
+                    "/api/auth/refresh-token").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/doctors/search").permitAll()
                 .requestMatchers(HttpMethod.GET,  "/api/doctors/{id}").permitAll()
                 // WebSocket

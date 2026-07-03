@@ -13,14 +13,14 @@ import com.quamtechs.steevacare.exception.AppException;
 import com.quamtechs.steevacare.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -169,11 +169,19 @@ public class AdminService {
     // ── Liste des utilisateurs ───────────────────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAllByStatusNot(AccountStatus.DELETED)
-            .stream()
-            .map(this::toUserResponse)
-            .collect(Collectors.toList());
+    public Page<UserResponse> getAllUsers(Pageable pageable) {
+        return userRepository.findAllByStatusNot(AccountStatus.DELETED, pageable)
+            .map(this::toUserResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+            .filter(u -> u.getStatus() != AccountStatus.DELETED)
+            .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,
+                "Utilisateur introuvable"));
+
+        return toUserResponse(user);
     }
 
     // ── Méthodes privées ─────────────────────────────────────────────────

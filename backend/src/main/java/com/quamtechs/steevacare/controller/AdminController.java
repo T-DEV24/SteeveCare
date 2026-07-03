@@ -8,13 +8,14 @@ import com.quamtechs.steevacare.entity.User;
 import com.quamtechs.steevacare.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -40,8 +41,8 @@ public class AdminController {
      * GET /api/admin/users — Lister tous les utilisateurs (hors DELETED)
      */
     @GetMapping("/users")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        return ResponseEntity.ok(adminService.getAllUsers());
+    public ResponseEntity<Page<UserResponse>> getAllUsers(Pageable pageable) {
+        return ResponseEntity.ok(adminService.getAllUsers(pageable));
     }
 
     /**
@@ -89,25 +90,6 @@ public class AdminController {
         @PathVariable Long id,
         @AuthenticationPrincipal User currentUser
     ) {
-        return ResponseEntity.ok(adminService.toUserResponse(
-            adminService.getAllUsers().stream()
-                .filter(u -> u.id().equals(id))
-                .findFirst()
-                .map(u -> {
-                    com.quamtechs.steevacare.entity.User entity =
-                        new com.quamtechs.steevacare.entity.User();
-                    entity.setId(u.id());
-                    entity.setEmail(u.email());
-                    entity.setNom(u.nom());
-                    entity.setPrenom(u.prenom());
-                    entity.setRole(u.role());
-                    entity.setStatus(u.status());
-                    return entity;
-                })
-                .orElseThrow(() -> new com.quamtechs.steevacare.exception.AppException(
-                    org.springframework.http.HttpStatus.NOT_FOUND,
-                    "Utilisateur introuvable"
-                ))
-        ));
+        return ResponseEntity.ok(adminService.getUserById(id));
     }
 }

@@ -1,9 +1,11 @@
 // src/main/java/com/quamtechs/steevacare/controller/DoctorController.java
 package com.quamtechs.steevacare.controller;
 
+import com.quamtechs.steevacare.dto.request.UpdateDoctorProfileRequest;
 import com.quamtechs.steevacare.dto.response.DoctorProfileResponse;
 import com.quamtechs.steevacare.entity.User;
 import com.quamtechs.steevacare.service.DoctorService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,7 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/doctors")
@@ -57,8 +58,8 @@ public class DoctorController {
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<DoctorProfileResponse> updateMyProfile(
         @AuthenticationPrincipal User currentUser,
-        @RequestBody Map<String, Object> updates
+        @Valid @RequestBody UpdateDoctorProfileRequest request
     ) {
-        return ResponseEntity.ok(doctorService.updateProfile(currentUser.getId(), updates));
+        return ResponseEntity.ok(doctorService.updateProfile(currentUser.getId(), request));
     }
 }

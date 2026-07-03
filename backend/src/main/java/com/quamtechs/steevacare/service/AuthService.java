@@ -2,6 +2,7 @@
 package com.quamtechs.steevacare.service;
 
 import com.quamtechs.steevacare.dto.request.LoginRequest;
+import com.quamtechs.steevacare.dto.request.RefreshTokenRequest;
 import com.quamtechs.steevacare.dto.request.RegisterPatientRequest;
 import com.quamtechs.steevacare.dto.response.AuthResponse;
 import com.quamtechs.steevacare.entity.Patient;
@@ -96,6 +97,22 @@ public class AuthService {
         log.info("Connexion réussie pour : {}", user.getEmail());
 
         // 4. Générer et retourner les tokens
+        return buildAuthResponse(user);
+    }
+
+    // ── Renouvellement de token ─────────────────────────────────────────
+
+    public AuthResponse refreshToken(RefreshTokenRequest req) {
+        if (!jwtService.isRefreshToken(req.refreshToken())) {
+            throw new AppException(HttpStatus.UNAUTHORIZED,
+                "Refresh token invalide ou expiré");
+        }
+
+        String email = jwtService.extractEmail(req.refreshToken());
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new AppException(HttpStatus.UNAUTHORIZED,
+                "Refresh token invalide"));
+
         return buildAuthResponse(user);
     }
 
