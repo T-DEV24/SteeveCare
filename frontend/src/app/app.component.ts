@@ -1,5 +1,5 @@
-// src/app/app.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+﻿// src/app/app.component.ts
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -21,7 +21,7 @@ import { LoadingService } from './core/services/loading.service';
       <router-outlet></router-outlet>
     </div>
 
-    <div *ngIf="loadingService.loading$ | async"
+    <div *ngIf="isLoading"
          class="global-loading-overlay"
          role="status"
          aria-live="polite"
@@ -39,17 +39,27 @@ import { LoadingService } from './core/services/loading.service';
 })
 export class AppComponent implements OnInit {
   protected loadingService = inject(LoadingService);
+  private cdr = inject(ChangeDetectorRef);
   showSplash = true;
+  isLoading = false;
 
   ngOnInit(): void {
     const alreadyLoaded = sessionStorage.getItem('sc_loaded');
     if (alreadyLoaded) {
       this.showSplash = false;
     }
+    // Souscription manuelle pour eviter ExpressionChangedAfterItHasBeenCheckedError
+    this.loadingService.loading$.subscribe(val => {
+      Promise.resolve().then(() => {
+        this.isLoading = val;
+        this.cdr.detectChanges();
+      });
+    });
   }
 
   onSplashDone(): void {
     this.showSplash = false;
     sessionStorage.setItem('sc_loaded', '1');
+    this.cdr.detectChanges();
   }
 }
