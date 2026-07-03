@@ -55,6 +55,24 @@ public class User implements UserDetails {
     @Column(length = 500)
     private String photoUrl;
 
+    @Column(length = 20)
+    private String dateNaissance;
+
+    @Column(length = 120)
+    private String ville;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean emailNotifications = true;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean darkMode = false;
+
+    @Builder.Default
+    @Column(nullable = false, length = 5)
+    private String language = "fr";
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
